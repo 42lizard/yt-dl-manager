@@ -69,7 +69,7 @@ A Python daemon that manages media downloads using yt-dlp. URLs are fetched from
 
 1. Define `.env` configuration
 2. Create SQLite3 schema and migration script
-3. Implement daemon process
+3. Implement daemon process (Python 3.8+ recommended)
 4. Integrate yt-dlp download logic
 5. Implement database update logic
 6. Add logging and error handling
