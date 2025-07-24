@@ -1,3 +1,5 @@
+"""Database migration script for yt-dl-manager downloads table."""
+
 import sqlite3
 
 DB_PATH = 'yt_dl_manager.db'
@@ -16,6 +18,7 @@ CREATE TABLE IF NOT EXISTS downloads (
 '''
 
 def migrate():
+    """Create or verify the downloads table schema."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(SCHEMA)
