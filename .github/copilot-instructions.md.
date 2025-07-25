@@ -1,0 +1,9 @@
+Instructions for copilot
+
+* pylint checks for application code must alway be 10/10
+* pylint duplicate code warnings in test are acceptable
+* before implementing news features write the unit test for the feature. work test driven.
+* use no deprecated functions and methods.
+* all documentation must be in english
+* keep docs streamlined and not overwhelming
+* no automatic staging and commiting to the main branch.
