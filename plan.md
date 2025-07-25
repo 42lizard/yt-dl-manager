@@ -9,10 +9,13 @@ A Python daemon that manages media downloads using yt-dlp. URLs are fetched from
 yt-dl-manager/
 ### Project Structure
 ```
+
 yt-dl-manager/
-├── daemon.py              # Main daemon service
-├── add_to_queue.py        # CLI tool for adding URLs
-├── db_utils.py            # Database schema and utilities
+├── yt_dl_manager/         # Main package directory
+│   ├── __init__.py
+│   ├── daemon.py          # Main daemon service
+│   ├── add_to_queue.py    # CLI tool for adding URLs
+│   └── db_utils.py        # Database schema and utilities
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)

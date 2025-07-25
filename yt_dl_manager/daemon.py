@@ -1,11 +1,10 @@
-
 """yt-dl-manager daemon: manages yt-dlp downloads from an SQLite queue."""
 
 import os
 import time
 from dotenv import load_dotenv
 import yt_dlp
-from db_utils import DatabaseUtils
+from .db_utils import DatabaseUtils
 
 load_dotenv()
 
@@ -13,10 +12,8 @@ DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
 POLL_INTERVAL = 10  # seconds
 MAX_RETRIES = 3
 
-
 class YTDLManagerDaemon:
     """Daemon for managing yt-dlp downloads from an SQLite queue."""
-
     def __init__(self, db_path):
         """Initialize the daemon with the database path."""
         self.db_path = db_path
@@ -93,7 +90,6 @@ class YTDLManagerDaemon:
                 time.sleep(POLL_INTERVAL)
         except KeyboardInterrupt:
             print('Daemon stopped.')
-
 
 if __name__ == '__main__':
     daemon = YTDLManagerDaemon(DB_PATH)

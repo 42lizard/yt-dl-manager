@@ -5,12 +5,12 @@ import sqlite3
 import shutil
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
 import yt_dlp
 
-from daemon import YTDLManagerDaemon, MAX_RETRIES
+from yt_dl_manager.daemon import YTDLManagerDaemon, MAX_RETRIES
 from tests.test_utils import create_test_schema
 
 
@@ -46,7 +46,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested, retries) "
             "VALUES (?, ?, ?, ?)",
-            (url, status, datetime.utcnow().isoformat(), retries)
+            (url, status, datetime.now(timezone.utc).isoformat(), retries)
         )
         conn.commit()
         row_id = cur.lastrowid
@@ -156,7 +156,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         self.assertEqual(retries, 2)
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
-    @patch('daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_success(self, mock_print, mock_ytdl_class):
         """Test successful media download."""
@@ -205,7 +205,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         mock_print.assert_called_with("Downloaded: /path/to/test_video.mp4")
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
-    @patch('daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_with_retry(self, mock_print, mock_ytdl_class):
         """Test download failure that should be retried."""
@@ -246,7 +246,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         mock_print.assert_called_with(expected_message)
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
-    @patch('daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_max_retries(self, mock_print, mock_ytdl_class):
         """Test download failure after max retries."""
@@ -286,7 +286,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         )
         mock_print.assert_called_with(expected_message)
 
-    @patch('daemon.time.sleep')
+    @patch('yt_dl_manager.daemon.time.sleep')
     @patch('builtins.print')
     def test_run_no_pending_downloads(self, mock_print, mock_sleep):
         """Test daemon run loop with no pending downloads."""
@@ -306,7 +306,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         mock_print.assert_any_call('No pending downloads.')
         mock_sleep.assert_called_once_with(10)  # POLL_INTERVAL
 
-    @patch('daemon.time.sleep')
+    @patch('yt_dl_manager.daemon.time.sleep')
     @patch('builtins.print')
     def test_run_with_pending_downloads(self, mock_print, mock_sleep):
         """Test daemon run loop with pending downloads."""
@@ -333,7 +333,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
             mock_download.assert_called_once()
             mock_sleep.assert_called_once_with(10)
 
-    @patch('daemon.time.sleep')
+    @patch('yt_dl_manager.daemon.time.sleep')
     @patch('builtins.print')
     def test_run_keyboard_interrupt(self, mock_print, mock_sleep):
         """Test daemon graceful shutdown on KeyboardInterrupt."""
@@ -355,7 +355,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         row_id = self._insert_test_download(test_url)
 
         with patch.dict(os.environ, {'TARGET_FOLDER': 'custom_downloads'}):
-            with patch('daemon.yt_dlp.YoutubeDL') as mock_ytdl_class:
+            with patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL') as mock_ytdl_class:
                 mock_ytdl_instance = MagicMock()
                 mock_ytdl_class.return_value.__enter__.return_value = (
                     mock_ytdl_instance

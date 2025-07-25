@@ -15,7 +15,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
 - 🎛️ **Environment configuration** - Easy setup via `.env` files
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
-- 🧪 **Comprehensive testing** - 21 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 34 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 
@@ -52,11 +52,11 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 
 ```bash
 # Add URLs to download queue (database auto-created on first use)
-python add_to_queue.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-python add_to_queue.py "https://vimeo.com/123456789"
+python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python -m yt_dl_manager.add_to_queue "https://vimeo.com/123456789"
 
 # Start the daemon (runs continuously)
-python daemon.py
+python -m yt_dl_manager.daemon
 ```
 
 ## 📋 Detailed Usage
@@ -67,16 +67,16 @@ The `add_to_queue.py` script provides intelligent duplicate handling:
 
 ```bash
 # Add a new URL
-python add_to_queue.py "https://www.youtube.com/watch?v=example"
+python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=example"
 # Output: URL added to queue: https://www.youtube.com/watch?v=example
 
 # Try to add the same URL again
-python add_to_queue.py "https://www.youtube.com/watch?v=example"
+python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=example"
 # Output: URL already exists in queue: https://www.youtube.com/watch?v=example
 #         Status: pending
 
 # Check queue length
-python add_to_queue.py --help  # Shows current queue length
+python -m yt_dl_manager.add_to_queue --help  # Shows current queue length
 ```
 
 ### Running the Daemon
@@ -84,7 +84,7 @@ python add_to_queue.py --help  # Shows current queue length
 The daemon polls the database every 10 seconds and processes pending downloads:
 
 ```bash
-python daemon.py
+python -m yt_dl_manager.daemon
 # Output: Daemon started. Polling for pending downloads...
 #         Found 2 pending downloads.
 #         Downloaded: downloads/youtube/Rick Astley - Never Gonna Give You Up.mp4
@@ -125,22 +125,23 @@ MAX_RETRIES=3
 
 ```bash
 # Run all unit tests
-python -m unittest tests.test_add_to_queue tests.test_daemon -v
+python -m pytest tests/ -v
 
 # Check code quality
-pylint daemon.py add_to_queue.py db_utils.py
+pylint yt_dl_manager
 
 # Run tests in specific file
-python -m unittest tests.test_daemon -v
+python -m pytest tests/test_daemon.py -v
 ```
 
 ```
 ## Project Structure
 yt-dl-manager/
-├── daemon.py              # Main daemon service
-├── add_to_queue.py        # CLI tool for adding URLs  
-├── db_utils.py            # Database schema utilities
-├── migrate_db.py          # Database schema setup (optional - auto-migration included)
+├── yt_dl_manager/         # Main package directory
+│   ├── __init__.py
+│   ├── daemon.py          # Main daemon service
+│   ├── add_to_queue.py    # CLI tool for adding URLs
+│   └── db_utils.py        # Database schema utilities
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
@@ -173,7 +174,7 @@ Table: `downloads`
 
 ### Custom yt-dlp Options
 
-Edit `daemon.py` to customize download options:
+Edit `yt_dl_manager/daemon.py` to customize download options:
 
 ```python
 ydl_opts = {
@@ -199,8 +200,8 @@ sqlite3 yt_dl_manager.db "SELECT url, status, timestamp_requested FROM downloads
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make changes and add tests
-4. Ensure tests pass: `python -m unittest tests.test_add_to_queue tests.test_daemon -v`
-5. Check code quality: `pylint daemon.py add_to_queue.py db_utils.py`
+4. Ensure tests pass: `python -m pytest tests/ -v`
+5. Check code quality: `pylint yt_dl_manager`
 6. Commit and push: `git commit -am 'Add feature' && git push origin feature-name`
 7. Create a Pull Request
 

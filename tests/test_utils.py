@@ -1,5 +1,5 @@
 """Test utilities."""
-from db_utils import DatabaseUtils
+from yt_dl_manager.db_utils import DatabaseUtils
 
 
 def create_test_schema(db_path):

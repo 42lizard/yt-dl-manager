@@ -4,10 +4,10 @@ import os
 import sqlite3
 import tempfile
 import unittest
-from datetime import datetime
-from unittest.mock import patch, MagicMock
+from datetime import datetime, timezone
+from unittest.mock import patch
 
-from add_to_queue import AddToQueue
+from yt_dl_manager.add_to_queue import AddToQueue
 from tests.test_utils import create_test_schema
 
 
@@ -75,7 +75,7 @@ class TestAddToQueue(unittest.TestCase):
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested, "
             "final_filename) VALUES (?, ?, ?, ?)",
-            (test_url, "downloaded", datetime.utcnow().isoformat(),
+            (test_url, "downloaded", datetime.now(timezone.utc).isoformat(),
              test_filename)
         )
         conn.commit()
@@ -113,13 +113,14 @@ class TestAddToQueue(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=timestamp_test"
 
         # Mock datetime to control timestamp
-        fixed_time = datetime(2025, 1, 1, 12, 0, 0)
-        mock_utcnow = MagicMock()
-        mock_utcnow.isoformat.return_value = fixed_time.isoformat()
+        fixed_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        class FixedDateTime(datetime):
+            """Mock datetime class for fixed timestamp in tests."""
+            @classmethod
+            def now(cls, tz=None):
+                return fixed_time
 
-        with patch('db_utils.datetime') as mock_datetime:
-            mock_datetime.utcnow.return_value = mock_utcnow
-
+        with patch('yt_dl_manager.db_utils.datetime.datetime', FixedDateTime):
             self.queue_manager.add_url(test_url)
 
         # Verify timestamp in database
@@ -155,7 +156,7 @@ class TestAddToQueue(unittest.TestCase):
                     cur.execute(
                         "INSERT INTO downloads (url, status, "
                         "timestamp_requested) VALUES (?, 'pending', ?)",
-                        (url, datetime.utcnow().isoformat())
+                        (url, datetime.now(timezone.utc).isoformat())
                     )
                     conn.commit()
                 except sqlite3.IntegrityError:
