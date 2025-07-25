@@ -6,27 +6,21 @@ A Python daemon that manages media downloads using yt-dlp. URLs are fetched from
 ## ✅ Completed Implementation
 
 ### Core Components
-- **Configuration**: `.env` file for settings (TARGET_FOLDER, DATABASE_PATH)
-- **Database**: SQLite3 with migration script and retry tracking
-- **Daemon**: Background service with 10-second polling interval
-- **CLI Tool**: `add_to_queue.py` for adding URLs with duplicate detection
-- **File Organization**: Downloads organized by extractor type
-- **Quality**: Best video+audio quality with metadata embedding
-- **Retry Logic**: Up to 3 attempts for failed downloads
-
+yt-dl-manager/
 ### Project Structure
 ```
 yt-dl-manager/
 ├── daemon.py              # Main daemon service
 ├── add_to_queue.py        # CLI tool for adding URLs
-├── migrate_db.py          # Database schema setup
+├── db_utils.py            # Database schema and utilities
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
-│   └── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   └── test_utils.py      # Test helpers
 ├── .env.example           # Configuration template
 ├── requirements.txt       # Dependencies
-├── LICENSE               # ISC license
-└── README.md             # Documentation
+├── LICENSE                # ISC license
+└── README.md              # Documentation
 ```
 
 ### Database Schema
@@ -38,25 +32,24 @@ Table: `downloads`
 - `timestamp_downloaded` (DATETIME, nullable)
 - `final_filename` (TEXT, nullable)
 - `extractor` (TEXT, nullable)
-- `retries` (INTEGER, default 0)
+- `retries` (INTEGER DEFAULT 0)
 
-### Quality Metrics
-- ✅ **21 comprehensive unit tests** (100% pass rate)
-- ✅ **10/10 pylint score** across all Python files
-- ✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
-- ✅ **ISC License** for open-source distribution
-- ✅ **Comprehensive documentation** with usage examples
+✅ **21 comprehensive unit tests** (100% pass rate)
+✅ **10/10 pylint score** across all Python files
+✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
+✅ **ISC License** for open-source distribution
+✅ **Comprehensive documentation** with usage examples
 
 ## Feature Checklist
 
 ### ✅ Core Features (Complete)
 - [x] .env configuration for target folder and database path
-- [x] SQLite3 schema and migration script
+- [x] SQLite3 schema and automatic migration (handled by db_utils.py)
 - [x] Daemon process for polling and downloading
 - [x] yt-dlp integration for best quality download
 - [x] File organization by extractor
-- [x] Database update logic for status, filename, extractor, timestamp
-- [x] Retry logic for failed downloads (up to 3 times)
+- [x] Database update logic for status, filename, extractor, timestamp, and retries
+- [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue script with duplicate handling and file path display
 - [x] Metadata embedding in final file
 - [x] Comprehensive unit test suite (21 tests)
@@ -84,7 +77,7 @@ Table: `downloads`
 python -m unittest tests.test_add_to_queue tests.test_daemon -v
 
 # Check code quality
-pylint daemon.py add_to_queue.py migrate_db.py
+pylint daemon.py add_to_queue.py db_utils.py
 ```
 
 ### CI/CD Pipeline

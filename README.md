@@ -23,7 +23,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 
 ### Installation
 
-1. **Clone and setup**:
+1. **Clone the repository and set up the environment**:
    ```bash
    git clone https://github.com/42lizard/yt-dl-manager.git
    cd yt-dl-manager
@@ -36,10 +36,8 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
    ```bash
    # Ubuntu/Debian
    sudo apt install ffmpeg
-   
    # macOS
    brew install ffmpeg
-   
    # Arch Linux
    sudo pacman -S ffmpeg
    ```
@@ -136,8 +134,9 @@ pylint daemon.py add_to_queue.py db_utils.py
 python -m unittest tests.test_daemon -v
 ```
 
-### Project Structure
-
+```
+yt-dl-manager/
+## Project Structure
 ```
 yt-dl-manager/
 ├── daemon.py              # Main daemon service
@@ -146,11 +145,12 @@ yt-dl-manager/
 ├── migrate_db.py          # Database schema setup (optional - auto-migration included)
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
-│   └── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   └── test_utils.py      # Test helpers
 ├── .env.example           # Configuration template
-├── requirements.txt       # Python dependencies
-├── LICENSE               # ISC license
-└── README.md             # This file
+├── requirements.txt       # Dependencies
+├── LICENSE                # ISC license
+└── README.md              # Documentation
 ```
 
 ### Test Coverage
@@ -159,19 +159,16 @@ yt-dl-manager/
 - **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
 - **Quality Metrics**: 100% test pass rate, 10/10 pylint score, CI/CD pipeline
 
-## 📊 Database Schema
-
-```sql
-CREATE TABLE downloads (
-    id INTEGER PRIMARY KEY,
-    url TEXT UNIQUE,
-    status TEXT,                    -- pending, downloading, downloaded, failed
-    timestamp_requested DATETIME,
-    timestamp_downloaded DATETIME,
-    final_filename TEXT,
-    extractor TEXT,
-    retries INTEGER DEFAULT 0
-);
+## Database Schema
+Table: `downloads`
+- `id` (INTEGER PRIMARY KEY)
+- `url` (TEXT, unique)
+- `status` (TEXT: pending, downloading, downloaded, failed)
+- `timestamp_requested` (DATETIME)
+- `timestamp_downloaded` (DATETIME, nullable)
+- `final_filename` (TEXT, nullable)
+- `extractor` (TEXT, nullable)
+- `retries` (INTEGER DEFAULT 0)
 ```
 
 ## 🛠️ Advanced Usage
