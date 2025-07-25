@@ -135,9 +135,7 @@ python -m unittest tests.test_daemon -v
 ```
 
 ```
-yt-dl-manager/
 ## Project Structure
-```
 yt-dl-manager/
 ├── daemon.py              # Main daemon service
 ├── add_to_queue.py        # CLI tool for adding URLs  
