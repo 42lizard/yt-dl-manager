@@ -5,8 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
-A professional Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing and comprehensive testing.
-
+A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing
 ## ✨ Features
 
 - 🎯 **Queue-based downloads** - SQLite3 database for reliable URL management
