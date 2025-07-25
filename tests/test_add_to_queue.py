@@ -115,7 +115,7 @@ class TestAddToQueue(unittest.TestCase):
         mock_utcnow = MagicMock()
         mock_utcnow.isoformat.return_value = fixed_time.isoformat()
 
-        with patch('add_to_queue.datetime') as mock_datetime:
+        with patch('db_utils.datetime') as mock_datetime:
             mock_datetime.utcnow.return_value = mock_utcnow
 
             self.queue_manager.add_url(test_url)
