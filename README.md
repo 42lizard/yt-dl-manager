@@ -15,6 +15,7 @@ A professional Python daemon for managing media downloads using yt-dlp, with SQL
 - 🔄 **Retry logic** - Up to 3 attempts for failed downloads with backoff
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
 - 🎛️ **Environment configuration** - Easy setup via `.env` files
+- 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🧪 **Comprehensive testing** - 21 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
@@ -50,15 +51,10 @@ A professional Python daemon for managing media downloads using yt-dlp, with SQL
    # Edit .env to set TARGET_FOLDER and DATABASE_PATH
    ```
 
-4. **Initialize database**:
-   ```bash
-   python migrate_db.py
-   ```
-
 ### Basic Usage
 
 ```bash
-# Add URLs to download queue
+# Add URLs to download queue (database auto-created on first use)
 python add_to_queue.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 python add_to_queue.py "https://vimeo.com/123456789"
 
@@ -135,7 +131,7 @@ MAX_RETRIES=3
 python -m unittest tests.test_add_to_queue tests.test_daemon -v
 
 # Check code quality
-pylint daemon.py add_to_queue.py migrate_db.py
+pylint daemon.py add_to_queue.py
 
 # Run tests in specific file
 python -m unittest tests.test_daemon -v
@@ -147,7 +143,7 @@ python -m unittest tests.test_daemon -v
 yt-dl-manager/
 ├── daemon.py              # Main daemon service
 ├── add_to_queue.py        # CLI tool for adding URLs  
-├── migrate_db.py          # Database schema setup
+├── migrate_db.py          # Database schema setup (optional - auto-migration included)
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   └── test_add_to_queue.py # CLI tool tests (8 test cases)
@@ -209,7 +205,7 @@ sqlite3 yt_dl_manager.db "SELECT url, status, timestamp_requested FROM downloads
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make changes and add tests
 4. Ensure tests pass: `python -m unittest tests.test_add_to_queue tests.test_daemon -v`
-5. Check code quality: `pylint daemon.py add_to_queue.py migrate_db.py`
+5. Check code quality: `pylint daemon.py add_to_queue.py`
 6. Commit and push: `git commit -am 'Add feature' && git push origin feature-name`
 7. Create a Pull Request
 
