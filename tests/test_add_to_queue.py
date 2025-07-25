@@ -33,12 +33,14 @@ class TestAddToQueue(unittest.TestCase):
 
         with patch('builtins.print') as mock_print:
             self.queue_manager.add_url(test_url)
-            mock_print.assert_called_once_with(f"URL added to queue: {test_url}")
+            mock_print.assert_called_once_with(
+                f"URL added to queue: {test_url}")
 
         # Verify URL was added to database
         conn = sqlite3.connect(self.test_db_path)
         cur = conn.cursor()
-        cur.execute("SELECT url, status FROM downloads WHERE url = ?", (test_url,))
+        cur.execute(
+            "SELECT url, status FROM downloads WHERE url = ?", (test_url,))
         row = cur.fetchone()
         conn.close()
 

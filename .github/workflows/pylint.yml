@@ -22,3 +22,6 @@ jobs:
     - name: Analysing application code with pylint
       run: |
         pylint $(git ls-files '*.py' | grep -v '^tests/' | grep -v 'migrate_db.py')
+    - name: Analysing test code with pylint
+      run: |
+        pylint --disable=duplicate-code $(git ls-files 'tests/*.py')

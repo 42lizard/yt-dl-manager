@@ -5,7 +5,6 @@ import sqlite3
 import tempfile
 import unittest
 from datetime import datetime
-from unittest.mock import patch, MagicMock
 
 from db_utils import DatabaseUtils, ensure_database_schema
 
@@ -28,7 +27,8 @@ class TestDatabaseUtils(unittest.TestCase):
         # Verify table exists by querying it
         conn = sqlite3.connect(self.test_db_path)
         cur = conn.cursor()
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
         table_exists = cur.fetchone() is not None
         conn.close()
         self.assertTrue(table_exists)
@@ -203,7 +203,8 @@ class TestDatabaseUtils(unittest.TestCase):
         # Verify in database
         conn = sqlite3.connect(self.test_db_path)
         cur = conn.cursor()
-        cur.execute("SELECT url, status FROM downloads WHERE url = ?", (test_url,))
+        cur.execute(
+            "SELECT url, status FROM downloads WHERE url = ?", (test_url,))
         row = cur.fetchone()
         conn.close()
 
@@ -263,7 +264,8 @@ class TestEnsureDatabaseSchemaBackwardCompatibility(unittest.TestCase):
         # Verify table exists
         conn = sqlite3.connect(self.test_db_path)
         cur = conn.cursor()
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
         table_exists = cur.fetchone() is not None
         conn.close()
         self.assertTrue(table_exists)

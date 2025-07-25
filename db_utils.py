@@ -17,19 +17,22 @@ CREATE TABLE IF NOT EXISTS downloads (
 );
 '''
 
+
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
+
     def __init__(self, db_path):
         """Initialize DatabaseUtils with database path.
-        
+
         Args:
             db_path (str): Path to the SQLite database file.
         """
         self.db_path = db_path
         self.ensure_schema()
+
     def ensure_schema(self):
         """Create or verify the downloads table schema.
-        
+
         Raises:
             sqlite3.OperationalError: If database connection fails during setup.
         """
@@ -43,32 +46,37 @@ class DatabaseUtils:
             # If we can't connect to the database during initialization,
             # we'll let the error happen later during actual operations
             pass
+
     def poll_pending(self):
         """Fetch all pending downloads from the database.
-        
+
         Returns:
             list: List of tuples (id, url, retries) for pending downloads.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("SELECT id, url, retries FROM downloads WHERE status = 'pending'")
+        cur.execute(
+            "SELECT id, url, retries FROM downloads WHERE status = 'pending'")
         rows = cur.fetchall()
         conn.close()
         return rows
+
     def mark_downloading(self, row_id):
         """Mark a download as 'downloading' in the database.
-        
+
         Args:
             row_id (int): The database row ID of the download.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("UPDATE downloads SET status = 'downloading' WHERE id = ?", (row_id,))
+        cur.execute(
+            "UPDATE downloads SET status = 'downloading' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
+
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database.
-        
+
         Args:
             row_id (int): The database row ID of the download.
             filename (str): The final filename of the downloaded file.
@@ -84,45 +92,52 @@ class DatabaseUtils:
         )
         conn.commit()
         conn.close()
+
     def mark_failed(self, row_id):
         """Mark a download as 'failed' in the database.
-        
+
         Args:
             row_id (int): The database row ID of the download.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("UPDATE downloads SET status = 'failed' WHERE id = ?", (row_id,))
+        cur.execute(
+            "UPDATE downloads SET status = 'failed' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
+
     def increment_retries(self, row_id):
         """Increment the retry counter for a download in the database.
-        
+
         Args:
             row_id (int): The database row ID of the download.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("UPDATE downloads SET retries = retries + 1 WHERE id = ?", (row_id,))
+        cur.execute(
+            "UPDATE downloads SET retries = retries + 1 WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
+
     def set_status_to_pending(self, row_id):
         """Set a download status back to 'pending' for retry.
-        
+
         Args:
             row_id (int): The database row ID of the download.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("UPDATE downloads SET status = 'pending' WHERE id = ?", (row_id,))
+        cur.execute(
+            "UPDATE downloads SET status = 'pending' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
+
     def add_url(self, media_url):
         """Add a media URL to the downloads queue.
-        
+
         Args:
             media_url (str): The URL to add to the queue.
-            
+
         Returns:
             tuple: (success, message) where success is bool and message is str.
         """
@@ -136,7 +151,8 @@ class DatabaseUtils:
             conn.commit()
             return True, f"URL added to queue: {media_url}"
         except sqlite3.IntegrityError:
-            cur.execute("SELECT final_filename, status FROM downloads WHERE url = ?", (media_url,))
+            cur.execute(
+                "SELECT final_filename, status FROM downloads WHERE url = ?", (media_url,))
             row = cur.fetchone()
             if row:
                 filename, status = row
@@ -152,9 +168,10 @@ class DatabaseUtils:
             return False, message
         finally:
             conn.close()
+
     def queue_length(self):
         """Return the number of items in the queue.
-        
+
         Returns:
             int: Total number of downloads in the database.
         """
@@ -168,13 +185,13 @@ class DatabaseUtils:
 
 def ensure_database_schema(db_path):
     """Create or verify the downloads table schema.
-    
+
     Args:
         db_path (str): Path to the SQLite database file.
-        
+
     Raises:
         sqlite3.OperationalError: If database connection fails during setup.
-        
+
     Note:
         This function is kept for backward compatibility.
         New code should use DatabaseUtils class instead.

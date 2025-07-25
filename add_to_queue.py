@@ -9,8 +9,10 @@ from db_utils import DatabaseUtils
 load_dotenv()
 DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
 
+
 class AddToQueue:
     """Class to manage adding URLs to the yt-dl-manager queue."""
+
     def __init__(self, db_path):
         """Initialize with the database path."""
         self.db_path = db_path
@@ -25,6 +27,7 @@ class AddToQueue:
     def queue_length(self):
         """Return the number of items in the queue."""
         return self.db.queue_length()
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
