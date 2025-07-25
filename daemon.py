@@ -6,6 +6,7 @@ import time
 import sqlite3
 from dotenv import load_dotenv
 import yt_dlp
+from db_utils import ensure_database_schema
 
 load_dotenv()
 
@@ -19,6 +20,7 @@ class YTDLManagerDaemon:
         """Initialize the daemon with the database path."""
         self.db_path = db_path
         self.running = True
+        ensure_database_schema(self.db_path)
 
     def poll_pending(self):
         """Fetch all pending downloads from the database."""

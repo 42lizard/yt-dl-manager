@@ -6,6 +6,7 @@ import sys
 import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
+from db_utils import ensure_database_schema
 
 load_dotenv()
 DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
@@ -15,6 +16,7 @@ class AddToQueue:
     def __init__(self, db_path):
         """Initialize with the database path."""
         self.db_path = db_path
+        ensure_database_schema(self.db_path)
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue."""

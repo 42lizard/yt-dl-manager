@@ -19,6 +19,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
         pip install -r requirements.txt
-    - name: Analysing the code with pylint
+    - name: Analysing application code with pylint
       run: |
-        pylint --ignore=migrate_db.py $(git ls-files '*.py')
+        pylint $(git ls-files '*.py' | grep -v '^tests/' | grep -v 'migrate_db.py')
+    - name: Analysing test code with pylint
+      run: |
+        pylint tests/
