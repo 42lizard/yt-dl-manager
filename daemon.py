@@ -19,6 +19,32 @@ class YTDLManagerDaemon:
         """Initialize the daemon with the database path."""
         self.db_path = db_path
         self.running = True
+        self._ensure_database_schema()
+
+    def _ensure_database_schema(self):
+        """Create or verify the downloads table schema."""
+        schema = '''
+        CREATE TABLE IF NOT EXISTS downloads (
+            id INTEGER PRIMARY KEY,
+            url TEXT UNIQUE,
+            status TEXT,
+            timestamp_requested DATETIME,
+            timestamp_downloaded DATETIME,
+            final_filename TEXT,
+            extractor TEXT,
+            retries INTEGER DEFAULT 0
+        );
+        '''
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+            cur.execute(schema)
+            conn.commit()
+            conn.close()
+        except sqlite3.OperationalError:
+            # If we can't connect to the database during initialization,
+            # we'll let the error happen later during actual operations
+            pass
 
     def poll_pending(self):
         """Fetch all pending downloads from the database."""
