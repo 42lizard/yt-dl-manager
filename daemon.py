@@ -3,10 +3,9 @@
 
 import os
 import time
-import sqlite3
 from dotenv import load_dotenv
 import yt_dlp
-from db_utils import ensure_database_schema
+from db_utils import DatabaseUtils
 
 load_dotenv()
 
@@ -20,53 +19,27 @@ class YTDLManagerDaemon:
         """Initialize the daemon with the database path."""
         self.db_path = db_path
         self.running = True
-        ensure_database_schema(self.db_path)
+        self.db = DatabaseUtils(self.db_path)
 
     def poll_pending(self):
         """Fetch all pending downloads from the database."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT id, url, retries FROM downloads WHERE status = 'pending'")
-        rows = cur.fetchall()
-        conn.close()
-        return rows
+        return self.db.poll_pending()
 
     def mark_downloading(self, row_id):
         """Mark a download as 'downloading' in the database."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("UPDATE downloads SET status = 'downloading' WHERE id = ?", (row_id,))
-        conn.commit()
-        conn.close()
+        self.db.mark_downloading(row_id)
 
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE downloads SET status = 'downloaded', "
-            "timestamp_downloaded = datetime('now'), "
-            "final_filename = ?, extractor = ? WHERE id = ?",
-            (filename, extractor, row_id)
-        )
-        conn.commit()
-        conn.close()
+        self.db.mark_downloaded(row_id, filename, extractor)
 
     def mark_failed(self, row_id):
         """Mark a download as 'failed' in the database."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("UPDATE downloads SET status = 'failed' WHERE id = ?", (row_id,))
-        conn.commit()
-        conn.close()
+        self.db.mark_failed(row_id)
 
     def increment_retries(self, row_id):
         """Increment the retry counter for a download in the database."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("UPDATE downloads SET retries = retries + 1 WHERE id = ?", (row_id,))
-        conn.commit()
-        conn.close()
+        self.db.increment_retries(row_id)
 
     def download_media(self, row_id, url, retries):
         """Download media using yt-dlp, update database, and handle retries."""
@@ -97,11 +70,7 @@ class YTDLManagerDaemon:
                 )
             else:
                 # Set status back to pending for retry
-                conn = sqlite3.connect(self.db_path)
-                cur = conn.cursor()
-                cur.execute("UPDATE downloads SET status = 'pending' WHERE id = ?", (row_id,))
-                conn.commit()
-                conn.close()
+                self.db.set_status_to_pending(row_id)
                 print(
                     f"Download failed for {url}, will retry "
                     f"(attempt {retries+1}/{MAX_RETRIES}): {err}"

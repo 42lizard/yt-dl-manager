@@ -3,10 +3,8 @@
 
 import os
 import sys
-import sqlite3
-from datetime import datetime
 from dotenv import load_dotenv
-from db_utils import ensure_database_schema
+from db_utils import DatabaseUtils
 
 load_dotenv()
 DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
@@ -16,44 +14,16 @@ class AddToQueue:
     def __init__(self, db_path):
         """Initialize with the database path."""
         self.db_path = db_path
-        ensure_database_schema(self.db_path)
+        self.db = DatabaseUtils(self.db_path)
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, 'pending', ?)",
-                (media_url, datetime.utcnow().isoformat())
-            )
-            conn.commit()
-            print(f"URL added to queue: {media_url}")
-        except sqlite3.IntegrityError:
-            cur.execute("SELECT final_filename, status FROM downloads WHERE url = ?", (media_url,))
-            row = cur.fetchone()
-            if row:
-                filename, status = row
-                if filename:
-                    print(
-                        f"URL already exists in queue: {media_url}\n"
-                        f"Status: {status}\nDownloaded file: {filename}"
-                    )
-                else:
-                    print(f"URL already exists in queue: {media_url}\nStatus: {status}")
-            else:
-                print(f"URL already exists in queue: {media_url}")
-        finally:
-            conn.close()
+        success, message = self.db.add_url(media_url)
+        print(message)
 
     def queue_length(self):
         """Return the number of items in the queue."""
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM downloads")
-        count = cur.fetchone()[0]
-        conn.close()
-        return count
+        return self.db.queue_length()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
