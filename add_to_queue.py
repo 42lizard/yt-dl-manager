@@ -6,6 +6,7 @@ import sys
 import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
+from db_utils import ensure_database_schema
 
 load_dotenv()
 DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
@@ -15,32 +16,7 @@ class AddToQueue:
     def __init__(self, db_path):
         """Initialize with the database path."""
         self.db_path = db_path
-        self._ensure_database_schema()
-
-    def _ensure_database_schema(self):
-        """Create or verify the downloads table schema."""
-        schema = '''
-        CREATE TABLE IF NOT EXISTS downloads (
-            id INTEGER PRIMARY KEY,
-            url TEXT UNIQUE,
-            status TEXT,
-            timestamp_requested DATETIME,
-            timestamp_downloaded DATETIME,
-            final_filename TEXT,
-            extractor TEXT,
-            retries INTEGER DEFAULT 0
-        );
-        '''
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cur = conn.cursor()
-            cur.execute(schema)
-            conn.commit()
-            conn.close()
-        except sqlite3.OperationalError:
-            # If we can't connect to the database during initialization,
-            # we'll let the error happen later during actual operations
-            pass
+        ensure_database_schema(self.db_path)
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue."""

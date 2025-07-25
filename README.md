@@ -131,7 +131,7 @@ MAX_RETRIES=3
 python -m unittest tests.test_add_to_queue tests.test_daemon -v
 
 # Check code quality
-pylint daemon.py add_to_queue.py
+pylint daemon.py add_to_queue.py db_utils.py
 
 # Run tests in specific file
 python -m unittest tests.test_daemon -v
@@ -143,6 +143,7 @@ python -m unittest tests.test_daemon -v
 yt-dl-manager/
 ├── daemon.py              # Main daemon service
 ├── add_to_queue.py        # CLI tool for adding URLs  
+├── db_utils.py            # Database schema utilities
 ├── migrate_db.py          # Database schema setup (optional - auto-migration included)
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
@@ -205,7 +206,7 @@ sqlite3 yt_dl_manager.db "SELECT url, status, timestamp_requested FROM downloads
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make changes and add tests
 4. Ensure tests pass: `python -m unittest tests.test_add_to_queue tests.test_daemon -v`
-5. Check code quality: `pylint daemon.py add_to_queue.py`
+5. Check code quality: `pylint daemon.py add_to_queue.py db_utils.py`
 6. Commit and push: `git commit -am 'Add feature' && git push origin feature-name`
 7. Create a Pull Request
 
