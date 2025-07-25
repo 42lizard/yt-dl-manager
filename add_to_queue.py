@@ -20,6 +20,7 @@ class AddToQueue:
         """Add a media URL to the downloads queue."""
         success, message = self.db.add_url(media_url)
         print(message)
+        return success
 
     def queue_length(self):
         """Return the number of items in the queue."""

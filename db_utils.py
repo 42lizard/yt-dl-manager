@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS downloads (
 
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
-    
     def __init__(self, db_path):
         """Initialize DatabaseUtils with database path.
         
@@ -28,7 +27,6 @@ class DatabaseUtils:
         """
         self.db_path = db_path
         self.ensure_schema()
-    
     def ensure_schema(self):
         """Create or verify the downloads table schema.
         
@@ -45,7 +43,6 @@ class DatabaseUtils:
             # If we can't connect to the database during initialization,
             # we'll let the error happen later during actual operations
             pass
-    
     def poll_pending(self):
         """Fetch all pending downloads from the database.
         
@@ -58,7 +55,6 @@ class DatabaseUtils:
         rows = cur.fetchall()
         conn.close()
         return rows
-    
     def mark_downloading(self, row_id):
         """Mark a download as 'downloading' in the database.
         
@@ -70,7 +66,6 @@ class DatabaseUtils:
         cur.execute("UPDATE downloads SET status = 'downloading' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
-    
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database.
         
@@ -89,7 +84,6 @@ class DatabaseUtils:
         )
         conn.commit()
         conn.close()
-    
     def mark_failed(self, row_id):
         """Mark a download as 'failed' in the database.
         
@@ -101,7 +95,6 @@ class DatabaseUtils:
         cur.execute("UPDATE downloads SET status = 'failed' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
-    
     def increment_retries(self, row_id):
         """Increment the retry counter for a download in the database.
         
@@ -113,7 +106,6 @@ class DatabaseUtils:
         cur.execute("UPDATE downloads SET retries = retries + 1 WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
-    
     def set_status_to_pending(self, row_id):
         """Set a download status back to 'pending' for retry.
         
@@ -125,7 +117,6 @@ class DatabaseUtils:
         cur.execute("UPDATE downloads SET status = 'pending' WHERE id = ?", (row_id,))
         conn.commit()
         conn.close()
-    
     def add_url(self, media_url):
         """Add a media URL to the downloads queue.
         
@@ -161,7 +152,6 @@ class DatabaseUtils:
             return False, message
         finally:
             conn.close()
-    
     def queue_length(self):
         """Return the number of items in the queue.
         
