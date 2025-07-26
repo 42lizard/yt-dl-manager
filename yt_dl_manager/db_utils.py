@@ -3,6 +3,7 @@
 import sqlite3
 import datetime
 from enum import Enum
+from .config import config
 
 
 class DownloadStatus(Enum):
@@ -46,8 +47,6 @@ CREATE TABLE IF NOT EXISTS downloads (
     retries INTEGER DEFAULT 0
 );
 '''
-
-from .config import config
 
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""

@@ -1,3 +1,4 @@
+"""Default configuration creation utilities for yt-dl-manager."""
 import configparser
 from pathlib import Path
 from platformdirs import user_config_dir, user_data_dir, user_downloads_dir
@@ -6,6 +7,7 @@ APP_NAME = "yt-dl-manager"
 CONFIG_FILE_NAME = "config.ini"
 
 def create_default_config():
+    """Create a default configuration file with standard settings."""
     config_dir = Path(user_config_dir(APP_NAME, APP_NAME))
     data_dir = Path(user_data_dir(APP_NAME, APP_NAME))
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -18,7 +20,7 @@ def create_default_config():
         'DATABASE_PATH': str(data_dir / 'yt_dl_manager.db')
     }
 
-    with open(config_file_path, 'w') as configfile:
+    with open(config_file_path, 'w', encoding='utf-8') as configfile:
         config.write(configfile)
     print(f"Default configuration created at: {config_file_path}")
 

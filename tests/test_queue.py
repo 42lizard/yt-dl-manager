@@ -38,24 +38,25 @@ class TestQueue(unittest.TestCase):
         self.assertEqual(queue.db, mock_db_utils)
         self.assertEqual(queue.db_path, "/test/path.db")
 
-    @patch.dict(os.environ, {'DATABASE_PATH': 'test_env.db'})
     def test_initialization_from_env(self):
-        """Test queue initialization using environment variable."""
+        """Test queue initialization using explicit db_path parameter."""
         # Create a temporary file for this test
         temp_fd, temp_path = tempfile.mkstemp(suffix='test_env.db')
         os.close(temp_fd)
         try:
-            with patch.dict(os.environ, {'DATABASE_PATH': temp_path}):
-                queue = Queue()
-                self.assertEqual(queue.db_path, temp_path)
+            # Use explicit db_path parameter instead of config
+            queue = Queue(db_path=temp_path)
+            self.assertEqual(queue.db_path, temp_path)
         finally:
             os.unlink(temp_path)
 
     def test_initialization_default_path(self):
-        """Test queue initialization with default database path."""
-        with patch.dict(os.environ, {}, clear=True):
-            queue = Queue()
-            self.assertEqual(queue.db_path, 'yt_dl_manager.db')
+        """Test queue initialization with default database path from config."""
+        # Test without mocking - this should use the actual config system
+        queue = Queue()
+        # The path should be from the config system 
+        expected_path = '/Users/gass/Library/Application Support/yt-dl-manager/yt_dl_manager.db'
+        self.assertEqual(queue.db_path, expected_path)
 
     def test_add_url_new(self):
         """Test adding a new URL to the queue."""
