@@ -202,7 +202,8 @@ class TestYTDLManagerDaemon(unittest.TestCase):
             self.assertEqual(row[2], 'youtube')
 
             # Verify success message was logged
-            mock_logger_info.assert_any_call("Downloaded successfully: %s", '/path/to/test_video.mp4')
+            mock_logger_info.assert_any_call("Downloaded successfully: %s",
+                                              '/path/to/test_video.mp4')
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
