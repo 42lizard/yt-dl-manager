@@ -2,18 +2,10 @@
 
 import os
 import logging
-from enum import Enum
 from dotenv import load_dotenv
 from .db_utils import DatabaseUtils
 
 load_dotenv()
-
-class DownloadStatus(Enum):
-    """Enumeration for download status values."""
-    PENDING = 'pending'
-    DOWNLOADING = 'downloading'
-    DOWNLOADED = 'downloaded'
-    FAILED = 'failed'
 
 class Queue:
     """Centralized queue management class for yt-dl-manager.
