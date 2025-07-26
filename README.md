@@ -13,12 +13,13 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📁 **Smart organization** - Files organized by extractor (youtube, vimeo, etc.)
 - 🔄 **Retry logic** - Up to 3 attempts for failed downloads with backoff
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
-- 🎛️ **Environment configuration** - Easy setup via `.env` files
+- 🎛️ **User-friendly config** - Automatic configuration in user directories
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
-- 🧪 **Comprehensive testing** - 50 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 61 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
+- ⚙️ **User-friendly config** - Automatic configuration in user directories
 
 ## 🚀 Quick Start
 
@@ -43,10 +44,12 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
    sudo pacman -S ffmpeg
    ```
 
-3. **Configure**:
+3. **Configure (optional)**:
    ```bash
-   cp .env.example .env
-   # Edit .env to set TARGET_FOLDER and DATABASE_PATH
+   # Configuration is automatic - uses user config directories
+   # To customize, edit the auto-generated config file:
+   # macOS: ~/Library/Application Support/yt-dl-manager/config.ini
+   # Linux: ~/.config/yt-dl-manager/config.ini
    ```
 
 ### Basic Usage
@@ -108,16 +111,25 @@ downloads/
 
 ## 🔧 Configuration
 
-Edit `.env` to customize behavior:
+The application automatically creates configuration files in user directories:
 
+**Default Configuration Locations:**
+- **macOS**: `~/Library/Application Support/yt-dl-manager/config.ini`
+- **Linux**: `~/.config/yt-dl-manager/config.ini`
+- **Windows**: `%APPDATA%\yt-dl-manager\config.ini`
+
+**Default Settings (example for macOS):**
+```ini
+[DEFAULT]
+TARGET_FOLDER = /Users/username/Downloads/yt-dl-manager
+DATABASE_PATH = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
+```
+
+*Note: Actual paths will vary by operating system. The application uses `platformdirs` to automatically determine the appropriate user directories for your OS.*
+
+To customize, edit the config file or create a new default configuration:
 ```bash
-# Required settings
-TARGET_FOLDER=downloads
-DATABASE_PATH=yt_dl_manager.db
-
-# Optional settings (defaults shown)
-POLL_INTERVAL=10
-MAX_RETRIES=3
+python -m yt_dl_manager.create_config
 ```
 
 ## 🧪 Development & Testing
@@ -142,14 +154,15 @@ yt-dl-manager/
 │   ├── daemon.py          # Main daemon service
 │   ├── add_to_queue.py    # CLI tool for adding URLs
 │   ├── queue.py           # Centralized queue management class
-│   └── db_utils.py        # Database schema utilities
+│   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
+│   ├── config.py          # Configuration management with platformdirs
+│   └── create_config.py   # Default configuration creation utility
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (11 test cases)
+│   ├── test_daemon.py     # Daemon tests (21 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
-│   ├── test_queue.py      # Queue class tests (16 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (15 test cases)
+│   ├── test_queue.py      # Queue class tests (20 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (12 test cases)
 │   └── test_utils.py      # Test helpers
-├── .env.example           # Configuration template
 ├── requirements.txt       # Dependencies
 ├── LICENSE                # ISC license
 └── README.md              # Documentation
@@ -157,11 +170,11 @@ yt-dl-manager/
 
 ### Test Coverage
 
-- **Daemon Tests (11 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (21 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
 - **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
-- **Queue Tests (16 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (15 cases)**: Low-level database operations, schema management, data integrity
-- **Quality Metrics**: 100% test pass rate (50/50), 10/10 pylint score, CI/CD pipeline
+- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (12 cases)**: Low-level database operations, schema management, data integrity
+- **Quality Metrics**: 100% test pass rate (61/61), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`
@@ -182,11 +195,13 @@ Table: `downloads`
 Edit `yt_dl_manager/daemon.py` to customize download options:
 
 ```python
+# In the download_media method, modify the ydl_opts dictionary:
 ydl_opts = {
     'format': 'bestvideo+bestaudio/best',
     'outtmpl': f'{target_folder}/%(extractor)s/%(title)s.%(ext)s',
     'writemetadata': True,
     'embedmetadata': True,
+    'quiet': True,
     'writesubtitles': True,  # Add this for subtitles
     'writeautomaticsub': True,  # Add this for auto-generated subs
 }
@@ -194,10 +209,15 @@ ydl_opts = {
 
 ### Monitoring Downloads
 
-Query the database directly:
+Query the database directly (check config for actual database path):
 
 ```bash
-sqlite3 yt_dl_manager.db "SELECT url, status, timestamp_requested FROM downloads ORDER BY timestamp_requested DESC LIMIT 10;"
+# Default paths:
+# macOS: ~/Library/Application\ Support/yt-dl-manager/yt_dl_manager.db
+# Linux: ~/.local/share/yt-dl-manager/yt_dl_manager.db
+
+sqlite3 ~/Library/Application\ Support/yt-dl-manager/yt_dl_manager.db \
+  "SELECT url, status, timestamp_requested FROM downloads ORDER BY timestamp_requested DESC LIMIT 10;"
 ```
 
 ## 🤝 Contributing
