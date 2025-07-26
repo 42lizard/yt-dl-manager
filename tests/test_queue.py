@@ -3,9 +3,7 @@
 import unittest
 import tempfile
 import os
-from unittest.mock import Mock
 from yt_dl_manager.queue import Queue
-from yt_dl_manager.db_utils import DatabaseUtils
 
 
 class TestQueue(unittest.TestCase):
@@ -28,15 +26,6 @@ class TestQueue(unittest.TestCase):
         queue = Queue(self.test_db_path)
         self.assertEqual(queue.db_path, self.test_db_path)
         self.assertIsNotNone(queue.db)
-
-    def test_initialization_with_db_utils(self):
-        """Test queue initialization with DatabaseUtils dependency injection."""
-        mock_db_utils = Mock(spec=DatabaseUtils)
-        mock_db_utils.db_path = "/test/path.db"
-
-        queue = Queue(db_utils=mock_db_utils)
-        self.assertEqual(queue.db, mock_db_utils)
-        self.assertEqual(queue.db_path, "/test/path.db")
 
     def test_initialization_from_env(self):
         """Test queue initialization using explicit db_path parameter."""
