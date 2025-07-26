@@ -47,14 +47,16 @@ CREATE TABLE IF NOT EXISTS downloads (
 );
 '''
 
+from .config import config
+
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
-    def __init__(self, db_path):
+    def __init__(self, db_path=None):
         """Initialize DatabaseUtils with database path.
         Args:
-            db_path (str): Path to the SQLite database file.
+            db_path (str, optional): Path to the SQLite database file. Defaults to None.
         """
-        self.db_path = db_path
+        self.db_path = db_path if db_path else config['DEFAULT']['DATABASE_PATH']
         self.ensure_schema()
 
     def ensure_schema(self):

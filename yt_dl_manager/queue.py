@@ -1,11 +1,8 @@
 """Centralized queue management for yt-dl-manager."""
 
-import os
 import logging
-from dotenv import load_dotenv
 from .db_utils import DatabaseUtils
-
-load_dotenv()
+from .config import config
 
 class Queue:
     """Centralized queue management class for yt-dl-manager.
@@ -31,8 +28,9 @@ class Queue:
             self.db_path = db_utils.db_path
         else:
             if db_path is None:
-                db_path = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
-            self.db_path = db_path
+                self.db_path = config['DEFAULT']['DATABASE_PATH']
+            else:
+                self.db_path = db_path
             self.db = DatabaseUtils(self.db_path)
 
     def add_url(self, media_url):
