@@ -15,7 +15,8 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
 - 🎛️ **Environment configuration** - Easy setup via `.env` files
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
-- 🧪 **Comprehensive testing** - 34 unit tests with 100% pass rate
+- 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
+- 🧪 **Comprehensive testing** - 50 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 
@@ -134,17 +135,19 @@ pylint yt_dl_manager
 python -m pytest tests/test_daemon.py -v
 ```
 
-```
 ## Project Structure
 yt-dl-manager/
 ├── yt_dl_manager/         # Main package directory
 │   ├── __init__.py
 │   ├── daemon.py          # Main daemon service
 │   ├── add_to_queue.py    # CLI tool for adding URLs
+│   ├── queue.py           # Centralized queue management class
 │   └── db_utils.py        # Database schema utilities
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (13 test cases)
+│   ├── test_daemon.py     # Daemon tests (11 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   ├── test_queue.py      # Queue class tests (16 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (15 test cases)
 │   └── test_utils.py      # Test helpers
 ├── .env.example           # Configuration template
 ├── requirements.txt       # Dependencies
@@ -154,9 +157,11 @@ yt-dl-manager/
 
 ### Test Coverage
 
-- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (11 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
 - **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
-- **Quality Metrics**: 100% test pass rate, 10/10 pylint score, CI/CD pipeline
+- **Queue Tests (16 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (15 cases)**: Low-level database operations, schema management, data integrity
+- **Quality Metrics**: 100% test pass rate (50/50), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`

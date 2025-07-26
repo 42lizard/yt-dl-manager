@@ -2,6 +2,15 @@
 
 import sqlite3
 import datetime
+from enum import Enum
+
+
+class DownloadStatus(Enum):
+    """Enumeration for download status values."""
+    PENDING = 'pending'
+    DOWNLOADING = 'downloading'
+    DOWNLOADED = 'downloaded'
+    FAILED = 'failed'
 
 def ensure_database_schema(db_path):
     """Create or verify the downloads table schema.
@@ -70,7 +79,9 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, url, retries FROM downloads WHERE status = 'pending'")
+            f"SELECT id, url, retries FROM downloads \
+              WHERE status = '{DownloadStatus.PENDING.value}'"
+        )
         rows = cur.fetchall()
         conn.close()
         return rows
@@ -83,7 +94,9 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            "UPDATE downloads SET status = 'downloading' WHERE id = ?", (row_id,))
+            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADING.value}' WHERE id = ?",
+            (row_id,)
+        )
         conn.commit()
         conn.close()
 
@@ -97,7 +110,7 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            "UPDATE downloads SET status = 'downloaded', "
+            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADED.value}', "
             "timestamp_downloaded = datetime('now'), "
             "final_filename = ?, extractor = ? WHERE id = ?",
             (filename, extractor, row_id)
@@ -113,7 +126,9 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            "UPDATE downloads SET status = 'failed' WHERE id = ?", (row_id,))
+            f"UPDATE downloads SET status = '{DownloadStatus.FAILED.value}' WHERE id = ?",
+            (row_id,)
+        )
         conn.commit()
         conn.close()
 
@@ -137,7 +152,9 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            "UPDATE downloads SET status = 'pending' WHERE id = ?", (row_id,))
+            f"UPDATE downloads SET status = '{DownloadStatus.PENDING.value}' WHERE id = ?",
+            (row_id,)
+        )
         conn.commit()
         conn.close()
 
@@ -152,7 +169,8 @@ class DatabaseUtils:
         cur = conn.cursor()
         try:
             cur.execute(
-                "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, 'pending', ?)",
+                f"INSERT INTO downloads (url, status, timestamp_requested) "
+                f"VALUES (?, '{DownloadStatus.PENDING.value}', ?)",
                 (media_url, datetime.datetime.now(datetime.timezone.utc).isoformat())
             )
             conn.commit()
@@ -187,3 +205,40 @@ class DatabaseUtils:
         count = cur.fetchone()[0]
         conn.close()
         return count
+
+    def get_queue_status(self):
+        """Get queue statistics by status.
+
+        Returns:
+            dict: Dictionary with counts for each status (pending, downloading, downloaded, failed).
+            
+        Raises:
+            sqlite3.OperationalError: If database connection or query fails.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT status, COUNT(*)
+                FROM downloads
+                GROUP BY status
+            """)
+            results = cur.fetchall()
+            conn.close()
+
+            # Initialize all possible statuses with 0
+            status_counts = {
+                DownloadStatus.PENDING.value: 0,
+                DownloadStatus.DOWNLOADING.value: 0,
+                DownloadStatus.DOWNLOADED.value: 0,
+                DownloadStatus.FAILED.value: 0
+            }
+
+            # Update with actual counts
+            for status, count in results:
+                if status in status_counts:
+                    status_counts[status] = count
+
+            return status_counts
+        except sqlite3.OperationalError as e:
+            raise sqlite3.OperationalError(f"Failed to get queue status: {e}") from e
