@@ -1,12 +1,13 @@
 import configparser
 from pathlib import Path
-from platformdirs import user_config_dir
+from platformdirs import user_config_dir, user_data_dir
 
 APP_NAME = "yt-dl-manager"
 CONFIG_FILE_NAME = "config.ini"
 
 def get_config_path():
     config_dir = Path(user_config_dir(APP_NAME, APP_NAME))
+    data_dir = Path(user_data_dir(APP_NAME, APP_NAME))
     return config_dir / CONFIG_FILE_NAME
 
 def load_config():
