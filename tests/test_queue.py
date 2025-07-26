@@ -54,8 +54,11 @@ class TestQueue(unittest.TestCase):
         """Test queue initialization with default database path from config."""
         # Test without mocking - this should use the actual config system
         queue = Queue()
-        # The path should be from the config system
-        expected_path = '/Users/gass/Library/Application Support/yt-dl-manager/yt_dl_manager.db'
+        # The path should be from the config system - calculate expected path dynamically
+        from platformdirs import user_data_dir  # pylint: disable=import-outside-toplevel
+        from pathlib import Path  # pylint: disable=import-outside-toplevel
+        data_dir = user_data_dir("yt-dl-manager", "yt-dl-manager")
+        expected_path = str(Path(data_dir) / 'yt_dl_manager.db')
         self.assertEqual(queue.db_path, expected_path)
 
     def test_add_url_new(self):
