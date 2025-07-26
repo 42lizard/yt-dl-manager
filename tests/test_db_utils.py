@@ -246,6 +246,37 @@ class TestDatabaseUtils(unittest.TestCase):
         length = self.db_utils.queue_length()
         self.assertEqual(length, 3)
 
+    def test_get_queue_status_empty(self):
+        """Test getting queue status when database is empty."""
+        status = self.db_utils.get_queue_status()
+        expected = {
+            'pending': 0,
+            'downloading': 0,
+            'downloaded': 0,
+            'failed': 0
+        }
+        self.assertEqual(status, expected)
+
+    def test_get_queue_status_with_data(self):
+        """Test getting queue status with various download states."""
+        # Add multiple URLs
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        self.db_utils.add_url("https://example.com/video3")
+        self.db_utils.add_url("https://example.com/video4")
+
+        # Set different statuses
+        self.db_utils.mark_downloading(1)
+        self.db_utils.mark_downloaded(2, "video2.mp4", "youtube")
+        self.db_utils.mark_failed(3)
+        # Leave video4 as pending
+
+        status = self.db_utils.get_queue_status()
+        self.assertEqual(status['pending'], 1)
+        self.assertEqual(status['downloading'], 1)
+        self.assertEqual(status['downloaded'], 1)
+        self.assertEqual(status['failed'], 1)
+
 
 class TestEnsureDatabaseSchemaBackwardCompatibility(unittest.TestCase):
     """Test cases for backward compatibility function."""

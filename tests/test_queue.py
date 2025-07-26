@@ -3,8 +3,9 @@
 import unittest
 import tempfile
 import os
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from yt_dl_manager.queue import Queue
+from yt_dl_manager.db_utils import DatabaseUtils
 
 
 class TestQueue(unittest.TestCase):
@@ -27,6 +28,15 @@ class TestQueue(unittest.TestCase):
         queue = Queue(self.test_db_path)
         self.assertEqual(queue.db_path, self.test_db_path)
         self.assertIsNotNone(queue.db)
+
+    def test_initialization_with_db_utils(self):
+        """Test queue initialization with DatabaseUtils dependency injection."""
+        mock_db_utils = Mock(spec=DatabaseUtils)
+        mock_db_utils.db_path = "/test/path.db"
+
+        queue = Queue(db_utils=mock_db_utils)
+        self.assertEqual(queue.db, mock_db_utils)
+        self.assertEqual(queue.db_path, "/test/path.db")
 
     @patch.dict(os.environ, {'DATABASE_PATH': 'test_env.db'})
     def test_initialization_from_env(self):
@@ -65,6 +75,24 @@ class TestQueue(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn("URL already exists", message)
 
+    def test_add_url_invalid_empty_string(self):
+        """Test adding an empty string URL raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.add_url("")
+        self.assertIn("must be a non-empty string", str(context.exception))
+
+    def test_add_url_invalid_whitespace_only(self):
+        """Test adding a whitespace-only URL raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.add_url("   ")
+        self.assertIn("must be a non-empty string", str(context.exception))
+
+    def test_add_url_invalid_non_string(self):
+        """Test adding a non-string URL raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.add_url(123)
+        self.assertIn("must be a non-empty string", str(context.exception))
+
     def test_get_pending_empty(self):
         """Test getting pending downloads from empty queue."""
         pending = self.queue.get_pending()
@@ -78,6 +106,52 @@ class TestQueue(unittest.TestCase):
         self.assertEqual(len(pending), 1)
         self.assertEqual(pending[0][1], test_url)  # URL is second element
         self.assertEqual(pending[0][2], 0)  # retries is third element
+
+    def test_start_download_invalid_id(self):
+        """Test starting download with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.start_download(0)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            self.queue.start_download(-1)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            self.queue.start_download("invalid")
+        self.assertIn("must be a positive integer", str(context.exception))
+
+    def test_complete_download_invalid_parameters(self):
+        """Test completing download with invalid parameters raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.complete_download(0, "test.mp4", "youtube")
+        self.assertIn("must be a positive integer", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            self.queue.complete_download(1, "", "youtube")
+        self.assertIn("must be a non-empty string", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            self.queue.complete_download(1, "test.mp4", "")
+        self.assertIn("must be a non-empty string", str(context.exception))
+
+    def test_fail_download_invalid_id(self):
+        """Test failing download with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.fail_download(0)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+    def test_retry_download_invalid_id(self):
+        """Test retrying download with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.retry_download(-1)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+    def test_increment_retries_invalid_id(self):
+        """Test incrementing retries with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.increment_retries("invalid")
+        self.assertIn("must be a positive integer", str(context.exception))
 
     def test_start_download(self):
         """Test marking a download as started."""

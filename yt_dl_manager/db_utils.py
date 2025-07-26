@@ -187,3 +187,40 @@ class DatabaseUtils:
         count = cur.fetchone()[0]
         conn.close()
         return count
+
+    def get_queue_status(self):
+        """Get queue statistics by status.
+
+        Returns:
+            dict: Dictionary with counts for each status (pending, downloading, downloaded, failed).
+            
+        Raises:
+            sqlite3.OperationalError: If database connection or query fails.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT status, COUNT(*)
+                FROM downloads
+                GROUP BY status
+            """)
+            results = cur.fetchall()
+            conn.close()
+
+            # Initialize all possible statuses with 0
+            status_counts = {
+                'pending': 0,
+                'downloading': 0,
+                'downloaded': 0,
+                'failed': 0
+            }
+
+            # Update with actual counts
+            for status, count in results:
+                if status in status_counts:
+                    status_counts[status] = count
+
+            return status_counts
+        except sqlite3.OperationalError as e:
+            raise sqlite3.OperationalError(f"Failed to get queue status: {e}") from e
