@@ -4,7 +4,7 @@ import os
 import time
 from dotenv import load_dotenv
 import yt_dlp
-from .db_utils import DatabaseUtils
+from .queue import Queue
 
 load_dotenv()
 
@@ -18,27 +18,27 @@ class YTDLManagerDaemon:
         """Initialize the daemon with the database path."""
         self.db_path = db_path
         self.running = True
-        self.db = DatabaseUtils(self.db_path)
+        self.queue = Queue(self.db_path)
 
     def poll_pending(self):
         """Fetch all pending downloads from the database."""
-        return self.db.poll_pending()
+        return self.queue.get_pending()
 
     def mark_downloading(self, row_id):
         """Mark a download as 'downloading' in the database."""
-        self.db.mark_downloading(row_id)
+        self.queue.start_download(row_id)
 
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database."""
-        self.db.mark_downloaded(row_id, filename, extractor)
+        self.queue.complete_download(row_id, filename, extractor)
 
     def mark_failed(self, row_id):
         """Mark a download as 'failed' in the database."""
-        self.db.mark_failed(row_id)
+        self.queue.fail_download(row_id)
 
     def increment_retries(self, row_id):
         """Increment the retry counter for a download in the database."""
-        self.db.increment_retries(row_id)
+        self.queue.increment_retries(row_id)
 
     def download_media(self, row_id, url, retries):
         """Download media using yt-dlp, update database, and handle retries."""
@@ -69,7 +69,7 @@ class YTDLManagerDaemon:
                 )
             else:
                 # Set status back to pending for retry
-                self.db.set_status_to_pending(row_id)
+                self.queue.set_status_to_pending(row_id)
                 print(
                     f"Download failed for {url}, will retry "
                     f"(attempt {retries+1}/{MAX_RETRIES}): {err}"

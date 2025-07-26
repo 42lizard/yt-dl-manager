@@ -3,7 +3,7 @@
 import os
 import sys
 from dotenv import load_dotenv
-from yt_dl_manager.db_utils import DatabaseUtils
+from yt_dl_manager.queue import Queue
 
 load_dotenv()
 DB_PATH = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
@@ -13,17 +13,17 @@ class AddToQueue:
     def __init__(self, db_path):
         """Initialize with the database path."""
         self.db_path = db_path
-        self.db = DatabaseUtils(self.db_path)
+        self.queue = Queue(self.db_path)
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue."""
-        success, message = self.db.add_url(media_url)
+        success, message = self.queue.add_url(media_url)
         print(message)
         return success
 
     def queue_length(self):
         """Return the number of items in the queue."""
-        return self.db.queue_length()
+        return self.queue.get_queue_length()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
