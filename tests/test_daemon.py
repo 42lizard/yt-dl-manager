@@ -361,7 +361,9 @@ class TestYTDLManagerDaemon(unittest.TestCase):
 
         # Mock config to return custom target folder
         with patch('yt_dl_manager.daemon.config') as mock_config:
-            mock_config.__getitem__.return_value = {'TARGET_FOLDER': 'custom_downloads'}
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = 'custom_downloads'
+            mock_config.__getitem__.return_value = mock_default_section
 
             with patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL') as mock_ytdl_class:
                 mock_ytdl_instance = MagicMock()
