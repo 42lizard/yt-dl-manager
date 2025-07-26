@@ -3,7 +3,7 @@
 import unittest
 import tempfile
 import os
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 from yt_dl_manager.queue import Queue
 from yt_dl_manager.db_utils import DatabaseUtils
 
@@ -54,7 +54,7 @@ class TestQueue(unittest.TestCase):
         """Test queue initialization with default database path from config."""
         # Test without mocking - this should use the actual config system
         queue = Queue()
-        # The path should be from the config system 
+        # The path should be from the config system
         expected_path = '/Users/gass/Library/Application Support/yt-dl-manager/yt_dl_manager.db'
         self.assertEqual(queue.db_path, expected_path)
 
