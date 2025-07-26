@@ -16,14 +16,15 @@ yt-dl-manager/
 │   ├── daemon.py          # Main daemon service
 │   ├── add_to_queue.py    # CLI tool for adding URLs
 │   ├── queue.py           # Centralized queue management class
-│   └── db_utils.py        # Database schema and utilities
+│   ├── db_utils.py        # Database schema and utilities with DownloadStatus enum
+│   ├── config.py          # Configuration management with platformdirs
+│   └── create_config.py   # Default configuration creation utility
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (13 test cases)
+│   ├── test_daemon.py     # Daemon tests (21 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
-│   ├── test_queue.py      # Queue class tests (16 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (13 test cases)
+│   ├── test_queue.py      # Queue class tests (20 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (12 test cases)
 │   └── test_utils.py      # Test helpers
-├── .env.example           # Configuration template
 ├── requirements.txt       # Dependencies
 ├── LICENSE                # ISC license
 └── README.md              # Documentation
@@ -40,17 +41,19 @@ Table: `downloads`
 - `extractor` (TEXT, nullable)
 - `retries` (INTEGER DEFAULT 0)
 
-✅ **21 comprehensive unit tests** (100% pass rate)
+✅ **61 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** across all Python files
 ✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
 ✅ **ISC License** for open-source distribution
 ✅ **Comprehensive documentation** with usage examples
+✅ **User-friendly configuration** with platformdirs integration
 
 ## Feature Checklist
 
 ### ✅ Core Features (Complete)
-- [x] .env configuration for target folder and database path
+- [x] User-friendly configuration with platformdirs (config.py, create_config.py)
 - [x] SQLite3 schema and automatic migration (handled by db_utils.py)
+- [x] DownloadStatus enum for type-safe status management
 - [x] Daemon process for polling and downloading
 - [x] yt-dlp integration for best quality download
 - [x] File organization by extractor
@@ -58,7 +61,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue script with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] Comprehensive unit test suite (50 tests)
+- [x] Comprehensive unit test suite (61 tests)
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -88,11 +91,11 @@ pylint yt_dl_manager
 ```
 
 ### Test Coverage
-- **Daemon Tests (11 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (21 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
 - **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
-- **Queue Tests (16 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (15 cases)**: Low-level database operations, schema management, data integrity
-- **Quality Metrics**: 100% test pass rate (50/50), 10/10 pylint score, CI/CD pipeline
+- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (12 cases)**: Low-level database operations, schema management, data integrity
+- **Quality Metrics**: 100% test pass rate (61/61), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.8, 3.9, 3.10, 3.11

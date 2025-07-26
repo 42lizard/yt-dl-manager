@@ -31,8 +31,13 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         self.download_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.download_dir)
 
-        # Initialize the YTDLManagerDaemon instance
-        self.daemon = YTDLManagerDaemon(db_path=self.test_db_path)
+        # Initialize the YTDLManagerDaemon instance with mocked Queue
+        with patch('yt_dl_manager.daemon.Queue') as mock_queue_class:
+            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
+            # Create a real Queue instance with our test database path
+            test_queue = Queue(db_path=self.test_db_path)
+            mock_queue_class.return_value = test_queue
+            self.daemon = YTDLManagerDaemon()
 
         # Set download and final directories for testing purposes
         self.daemon.download_dir = self.download_dir
@@ -354,7 +359,12 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        with patch.dict(os.environ, {'TARGET_FOLDER': 'custom_downloads'}):
+        # Mock config to return custom target folder
+        with patch('yt_dl_manager.daemon.config') as mock_config:
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = 'custom_downloads'
+            mock_config.__getitem__.return_value = mock_default_section
+
             with patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL') as mock_ytdl_class:
                 mock_ytdl_instance = MagicMock()
                 mock_ytdl_class.return_value.__enter__.return_value = (

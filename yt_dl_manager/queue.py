@@ -1,11 +1,8 @@
 """Centralized queue management for yt-dl-manager."""
 
-import os
 import logging
-from dotenv import load_dotenv
 from .db_utils import DatabaseUtils
-
-load_dotenv()
+from .config import config
 
 class Queue:
     """Centralized queue management class for yt-dl-manager.
@@ -15,25 +12,20 @@ class Queue:
     add_to_queue modules.
     """
 
-    def __init__(self, db_path=None, db_utils=None):
-        """Initialize the Queue with database path or DatabaseUtils instance.
+    def __init__(self, db_path=None):
+        """Initialize the Queue with database path.
 
         Args:
             db_path (str, optional): Path to the SQLite database.
-                                   If None, uses DATABASE_PATH from environment.
-            db_utils (DatabaseUtils, optional): Pre-configured DatabaseUtils instance.
-                                               If provided, db_path is ignored.
+                                   If None, uses DATABASE_PATH from config.
         """
         self.logger = logging.getLogger(__name__)
 
-        if db_utils is not None:
-            self.db = db_utils
-            self.db_path = db_utils.db_path
+        if db_path is None:
+            self.db_path = config['DEFAULT']['DATABASE_PATH']
         else:
-            if db_path is None:
-                db_path = os.getenv('DATABASE_PATH', 'yt_dl_manager.db')
             self.db_path = db_path
-            self.db = DatabaseUtils(self.db_path)
+        self.db = DatabaseUtils(self.db_path)
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue.

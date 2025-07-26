@@ -24,8 +24,13 @@ class TestAddToQueue(unittest.TestCase):
         # Create the test database schema
         create_test_schema(self.test_db_path)
 
-        # Initialize the AddToQueue instance
-        self.queue_manager = AddToQueue(self.test_db_path)
+        # Initialize the AddToQueue instance with mocked Queue that uses test database
+        with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
+            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
+            # Create a real Queue instance with our test database path
+            test_queue = Queue(db_path=self.test_db_path)
+            mock_queue_class.return_value = test_queue
+            self.queue_manager = AddToQueue()
 
     def test_add_url_new_url(self):
         """Test adding a new URL to the queue."""
@@ -137,11 +142,16 @@ class TestAddToQueue(unittest.TestCase):
 
     def test_database_connection_error(self):
         """Test behavior when database connection fails."""
-        # Use invalid database path
-        invalid_queue = AddToQueue("/invalid/path/to/database.db")
+        # Create AddToQueue with invalid database path
+        with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
+            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
+            # Create a Queue instance with invalid database path
+            invalid_queue = Queue(db_path="/invalid/path/to/database.db")
+            mock_queue_class.return_value = invalid_queue
+            test_queue_manager = AddToQueue()
 
-        with self.assertRaises(sqlite3.OperationalError):
-            invalid_queue.add_url("https://www.youtube.com/watch?v=test")
+            with self.assertRaises(sqlite3.OperationalError):
+                test_queue_manager.add_url("https://www.youtube.com/watch?v=test")
 
     def test_add_url_edge_case_empty_result(self):
         """Test duplicate URL handling when database query returns no result."""
