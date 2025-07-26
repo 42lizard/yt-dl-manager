@@ -157,8 +157,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
-    @patch('builtins.print')
-    def test_download_media_success(self, mock_print, mock_ytdl_class):
+    def test_download_media_success(self, mock_ytdl_class):
         """Test successful media download."""
         # Setup mocks
         mock_ytdl_instance = MagicMock()
@@ -178,36 +177,36 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         row_id = self._insert_test_download(test_url)
 
         # Test download
-        self.daemon.download_media(row_id, test_url, 0)
+        with patch.object(self.daemon.logger, 'info') as mock_logger_info:
+            self.daemon.download_media(row_id, test_url, 0)
 
-        # Verify yt-dlp was called correctly
-        mock_ytdl_instance.extract_info.assert_called_once_with(
-            test_url, download=True
-        )
-        mock_ytdl_instance.prepare_filename.assert_called_once_with(mock_info)
+            # Verify yt-dlp was called correctly
+            mock_ytdl_instance.extract_info.assert_called_once_with(
+                test_url, download=True
+            )
+            mock_ytdl_instance.prepare_filename.assert_called_once_with(mock_info)
 
-        # Verify database was updated
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT status, final_filename, extractor FROM downloads "
-            "WHERE id = ?",
-            (row_id,)
-        )
-        row = cur.fetchone()
-        conn.close()
+            # Verify database was updated
+            conn = sqlite3.connect(self.test_db_path)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT status, final_filename, extractor FROM downloads "
+                "WHERE id = ?",
+                (row_id,)
+            )
+            row = cur.fetchone()
+            conn.close()
 
-        self.assertEqual(row[0], 'downloaded')
-        self.assertEqual(row[1], '/path/to/test_video.mp4')
-        self.assertEqual(row[2], 'youtube')
+            self.assertEqual(row[0], 'downloaded')
+            self.assertEqual(row[1], '/path/to/test_video.mp4')
+            self.assertEqual(row[2], 'youtube')
 
-        # Verify success message was printed
-        mock_print.assert_called_with("Downloaded: /path/to/test_video.mp4")
+            # Verify success message was logged
+            mock_logger_info.assert_any_call("Downloaded successfully: %s", '/path/to/test_video.mp4')
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
-    @patch('builtins.print')
-    def test_download_media_failure_with_retry(self, mock_print, mock_ytdl_class):
+    def test_download_media_failure_with_retry(self, mock_ytdl_class):
         """Test download failure that should be retried."""
         # Setup mocks
         mock_ytdl_instance = MagicMock()
@@ -223,32 +222,31 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         row_id = self._insert_test_download(test_url)
 
         # Test download with retry count below max
-        self.daemon.download_media(row_id, test_url, 1)
+        with patch.object(self.daemon.logger, 'warning') as mock_logger_warning:
+            self.daemon.download_media(row_id, test_url, 1)
 
-        # Verify database was updated for retry
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT status, retries FROM downloads WHERE id = ?", (row_id,)
-        )
-        row = cur.fetchone()
-        conn.close()
+            # Verify database was updated for retry
+            conn = sqlite3.connect(self.test_db_path)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT status, retries FROM downloads WHERE id = ?", (row_id,)
+            )
+            row = cur.fetchone()
+            conn.close()
 
-        # Should be set back to pending for retry
-        self.assertEqual(row[0], 'pending')
-        self.assertEqual(row[1], 1)  # Retries should be incremented
+            # Should be set back to pending for retry
+            self.assertEqual(row[0], 'pending')
+            self.assertEqual(row[1], 1)  # Retries should be incremented
 
-        # Verify retry message was printed
-        expected_message = (
-            f"Download failed for {test_url}, will retry "
-            f"(attempt 2/{MAX_RETRIES}): Network error"
-        )
-        mock_print.assert_called_with(expected_message)
+            # Verify retry message was logged
+            mock_logger_warning.assert_called_with(
+                "Download failed for %s, will retry (attempt %d/%d): %s", 
+                test_url, 2, MAX_RETRIES, "Network error"
+            )
 
     @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
-    @patch('builtins.print')
-    def test_download_media_failure_max_retries(self, mock_print, mock_ytdl_class):
+    def test_download_media_failure_max_retries(self, mock_ytdl_class):
         """Test download failure after max retries."""
         # Setup mocks
         mock_ytdl_instance = MagicMock()
@@ -264,31 +262,30 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         row_id = self._insert_test_download(test_url, retries=MAX_RETRIES-1)
 
         # Test download at max retries
-        self.daemon.download_media(row_id, test_url, MAX_RETRIES-1)
+        with patch.object(self.daemon.logger, 'error') as mock_logger_error:
+            self.daemon.download_media(row_id, test_url, MAX_RETRIES-1)
 
-        # Verify database was updated to failed
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT status, retries FROM downloads WHERE id = ?", (row_id,)
-        )
-        row = cur.fetchone()
-        conn.close()
+            # Verify database was updated to failed
+            conn = sqlite3.connect(self.test_db_path)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT status, retries FROM downloads WHERE id = ?", (row_id,)
+            )
+            row = cur.fetchone()
+            conn.close()
 
-        self.assertEqual(row[0], 'failed')
-        # Retries should be incremented to max
-        self.assertEqual(row[1], MAX_RETRIES)
+            self.assertEqual(row[0], 'failed')
+            # Retries should be incremented to max
+            self.assertEqual(row[1], MAX_RETRIES)
 
-        # Verify failure message was printed
-        expected_message = (
-            f"Download failed for {test_url} after {MAX_RETRIES} attempts: "
-            f"Network error"
-        )
-        mock_print.assert_called_with(expected_message)
+            # Verify failure message was logged
+            mock_logger_error.assert_called_with(
+                "Download failed for %s after %d attempts: %s", 
+                test_url, MAX_RETRIES, "Network error"
+            )
 
     @patch('yt_dl_manager.daemon.time.sleep')
-    @patch('builtins.print')
-    def test_run_no_pending_downloads(self, mock_print, mock_sleep):
+    def test_run_no_pending_downloads(self, mock_sleep):
         """Test daemon run loop with no pending downloads."""
         # Stop daemon after first iteration
         def side_effect(*_):
@@ -297,18 +294,19 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         mock_sleep.side_effect = side_effect
 
         # Run daemon
-        self.daemon.run()
+        with patch.object(self.daemon.logger, 'info') as mock_logger_info, \
+             patch.object(self.daemon.logger, 'debug') as mock_logger_debug:
+            self.daemon.run()
 
-        # Verify behavior
-        mock_print.assert_any_call(
-            'Daemon started. Polling for pending downloads...'
-        )
-        mock_print.assert_any_call('No pending downloads.')
-        mock_sleep.assert_called_once_with(10)  # POLL_INTERVAL
+            # Verify behavior
+            mock_logger_info.assert_any_call(
+                'Daemon started. Polling for pending downloads...'
+            )
+            mock_logger_debug.assert_any_call('No pending downloads.')
+            mock_sleep.assert_called_once_with(10)  # POLL_INTERVAL
 
     @patch('yt_dl_manager.daemon.time.sleep')
-    @patch('builtins.print')
-    def test_run_with_pending_downloads(self, mock_print, mock_sleep):
+    def test_run_with_pending_downloads(self, mock_sleep):
         """Test daemon run loop with pending downloads."""
         # Insert test download
         test_url = "https://www.youtube.com/watch?v=test"
@@ -323,31 +321,32 @@ class TestYTDLManagerDaemon(unittest.TestCase):
             mock_sleep.side_effect = side_effect
 
             # Run daemon
-            self.daemon.run()
+            with patch.object(self.daemon.logger, 'info') as mock_logger_info:
+                self.daemon.run()
 
-            # Verify behavior
-            mock_print.assert_any_call(
-                'Daemon started. Polling for pending downloads...'
-            )
-            mock_print.assert_any_call('Found 1 pending downloads.')
-            mock_download.assert_called_once()
-            mock_sleep.assert_called_once_with(10)
+                # Verify behavior
+                mock_logger_info.assert_any_call(
+                    'Daemon started. Polling for pending downloads...'
+                )
+                mock_logger_info.assert_any_call('Found %d pending downloads.', 1)
+                mock_download.assert_called_once()
+                mock_sleep.assert_called_once_with(10)
 
     @patch('yt_dl_manager.daemon.time.sleep')
-    @patch('builtins.print')
-    def test_run_keyboard_interrupt(self, mock_print, mock_sleep):
+    def test_run_keyboard_interrupt(self, mock_sleep):
         """Test daemon graceful shutdown on KeyboardInterrupt."""
         # Simulate KeyboardInterrupt on sleep
         mock_sleep.side_effect = KeyboardInterrupt()
 
         # Run daemon
-        self.daemon.run()
+        with patch.object(self.daemon.logger, 'info') as mock_logger_info:
+            self.daemon.run()
 
-        # Verify graceful shutdown message
-        mock_print.assert_any_call(
-            'Daemon started. Polling for pending downloads...'
-        )
-        mock_print.assert_any_call('Daemon stopped.')
+            # Verify graceful shutdown message
+            mock_logger_info.assert_any_call(
+                'Daemon started. Polling for pending downloads...'
+            )
+            mock_logger_info.assert_any_call('Daemon stopped.')
 
     def test_ytdl_options_configuration(self):
         """Test that yt-dlp options are configured correctly."""
