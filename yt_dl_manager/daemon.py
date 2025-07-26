@@ -2,6 +2,7 @@
 
 import os
 import time
+import logging
 from dotenv import load_dotenv
 import yt_dlp
 from .queue import Queue
@@ -19,6 +20,7 @@ class YTDLManagerDaemon:
         self.db_path = db_path
         self.running = True
         self.queue = Queue(self.db_path)
+        self.logger = logging.getLogger(__name__)
 
     def poll_pending(self):
         """Fetch all pending downloads from the database."""
@@ -52,44 +54,54 @@ class YTDLManagerDaemon:
             'embedmetadata': True,
             'quiet': True,
         }
+        self.logger.info("Starting download for row_id %d, URL: %s, retry attempt: %d",
+                         row_id, url, retries)
         self.mark_downloading(row_id)
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                self.logger.debug("Calling yt-dlp extract_info for URL: %s", url)
                 info = ydl.extract_info(url, download=True)
                 extractor = info.get('extractor', 'unknown')
+                self.logger.debug("Extract_info completed. Extractor: %s, Info keys: %s",
+                                  extractor, list(info.keys()) if info else 'None')
+
+                self.logger.debug("Calling yt-dlp prepare_filename")
                 filename = ydl.prepare_filename(info)
+                self.logger.debug("Prepare_filename completed. Filename: %s", filename)
             self.mark_downloaded(row_id, filename, extractor)
-            print(f"Downloaded: {filename}")
+            self.logger.info("Downloaded successfully: %s", filename)
         except yt_dlp.utils.DownloadError as err:
+            self.logger.debug("DownloadError occurred: %s", str(err))
             self.increment_retries(row_id)
             if retries + 1 >= MAX_RETRIES:
                 self.mark_failed(row_id)
-                print(
-                    f"Download failed for {url} after {MAX_RETRIES} attempts: {err}"
+                self.logger.error(
+                    "Download failed for %s after %d attempts: %s", 
+                    url, MAX_RETRIES, str(err)
                 )
             else:
                 # Set status back to pending for retry
                 self.queue.set_status_to_pending(row_id)
-                print(
-                    f"Download failed for {url}, will retry "
-                    f"(attempt {retries+1}/{MAX_RETRIES}): {err}"
+                self.logger.warning(
+                    "Download failed for %s, will retry (attempt %d/%d): %s", 
+                    url, retries+1, MAX_RETRIES, str(err)
                 )
 
     def run(self):
         """Main loop for polling and processing downloads."""
-        print('Daemon started. Polling for pending downloads...')
+        self.logger.info('Daemon started. Polling for pending downloads...')
         try:
             while self.running:
                 pending = self.poll_pending()
                 if pending:
-                    print(f'Found {len(pending)} pending downloads.')
+                    self.logger.info('Found %d pending downloads.', len(pending))
                     for row_id, url, retries in pending:
                         self.download_media(row_id, url, retries)
                 else:
-                    print('No pending downloads.')
+                    self.logger.debug('No pending downloads.')
                 time.sleep(POLL_INTERVAL)
         except KeyboardInterrupt:
-            print('Daemon stopped.')
+            self.logger.info('Daemon stopped.')
 
 if __name__ == '__main__':
     daemon = YTDLManagerDaemon(DB_PATH)
