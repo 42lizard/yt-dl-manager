@@ -34,7 +34,6 @@ class TestQueue(unittest.TestCase):
         # Create a temporary file for this test
         temp_fd, temp_path = tempfile.mkstemp(suffix='test_env.db')
         os.close(temp_fd)
-        
         try:
             with patch.dict(os.environ, {'DATABASE_PATH': temp_path}):
                 queue = Queue()
@@ -86,7 +85,7 @@ class TestQueue(unittest.TestCase):
         self.queue.add_url(test_url)
         pending = self.queue.get_pending()
         download_id = pending[0][0]
-        
+
         self.queue.start_download(download_id)
         # After marking as downloading, it should not appear in pending
         pending_after = self.queue.get_pending()
@@ -97,11 +96,11 @@ class TestQueue(unittest.TestCase):
         test_url = "https://www.example.com/video"
         test_filename = "/path/to/video.mp4"
         test_extractor = "youtube"
-        
+
         self.queue.add_url(test_url)
         pending = self.queue.get_pending()
         download_id = pending[0][0]
-        
+
         self.queue.complete_download(download_id, test_filename, test_extractor)
         # After completion, should not appear in pending
         pending_after = self.queue.get_pending()
@@ -113,7 +112,7 @@ class TestQueue(unittest.TestCase):
         self.queue.add_url(test_url)
         pending = self.queue.get_pending()
         download_id = pending[0][0]
-        
+
         self.queue.fail_download(download_id)
         # After marking as failed, should not appear in pending
         pending_after = self.queue.get_pending()
@@ -125,11 +124,11 @@ class TestQueue(unittest.TestCase):
         self.queue.add_url(test_url)
         pending = self.queue.get_pending()
         download_id = pending[0][0]
-        
+
         # Mark as downloading first
         self.queue.start_download(download_id)
         self.assertEqual(len(self.queue.get_pending()), 0)
-        
+
         # Now retry
         self.queue.retry_download(download_id)
         # Should appear in pending again with incremented retries
@@ -143,7 +142,7 @@ class TestQueue(unittest.TestCase):
         self.queue.add_url(test_url)
         pending = self.queue.get_pending()
         download_id = pending[0][0]
-        
+
         self.queue.increment_retries(download_id)
         # Check retries were incremented
         pending_after = self.queue.get_pending()
@@ -176,9 +175,9 @@ class TestQueue(unittest.TestCase):
         """Test getting queue status with various items."""
         # Add multiple URLs and set different statuses
         self.queue.add_url("https://www.example.com/video1")
-        self.queue.add_url("https://www.example.com/video2") 
+        self.queue.add_url("https://www.example.com/video2")
         self.queue.add_url("https://www.example.com/video3")
-        
+
         pending = self.queue.get_pending()
         # Mark one as downloading
         self.queue.start_download(pending[0][0])
@@ -186,7 +185,7 @@ class TestQueue(unittest.TestCase):
         self.queue.complete_download(pending[1][0], "test.mp4", "youtube")
         # Mark one as failed
         self.queue.fail_download(pending[2][0])
-        
+
         status = self.queue.get_queue_status()
         self.assertEqual(status['downloading'], 1)
         self.assertEqual(status['downloaded'], 1)
