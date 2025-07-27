@@ -1,7 +1,7 @@
 # yt-dl-manager Implementation Plan
 
 ## Overview
-A Python daemon that manages media downloads using yt-dlp with a user-friendly CLI interface. URLs are managed through an SQLite3 database, downloaded in the best available quality, and organized by extractor type. Features comprehensive configuration management and a modern subcommand-based CLI.
+A Python daemon that manages media downloads using yt-dlp with a user-friendly CLI interface. URLs are managed through an SQLite3 database, downloaded in the best available quality, and organized by extractor type. It features comprehensive configuration management and a modern subcommand-based CLI.
 
 ## ✅ Completed Implementation
 
