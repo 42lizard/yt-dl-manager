@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
-A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing
+A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing and a user-friendly CLI
 ## ✨ Features
 
 - 🎯 **Queue-based downloads** - SQLite3 database for reliable URL management
@@ -13,13 +13,13 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📁 **Smart organization** - Files organized by extractor (youtube, vimeo, etc.)
 - 🔄 **Retry logic** - Up to 3 attempts for failed downloads with backoff
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
-- 🎛️ **User-friendly config** - Automatic configuration in user directories
+- 🎛️ **User-friendly config** - Automatic configuration in user directories with `init` command
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
-- 🧪 **Comprehensive testing** - 61 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 63 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
-- ⚙️ **User-friendly config** - Automatic configuration in user directories
+- ⚙️ **Command-line interface** - Simple subcommands for all operations
 
 ## 🚀 Quick Start
 
@@ -44,43 +44,41 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
    sudo pacman -S ffmpeg
    ```
 
-3. **Configure (optional)**:
+3. **Initialize configuration**:
    ```bash
-   # Configuration is automatic - uses user config directories
-   # To customize, edit the auto-generated config file:
-   # macOS: ~/Library/Application Support/yt-dl-manager/config.ini
-   # Linux: ~/.config/yt-dl-manager/config.ini
+   # Create default configuration file
+   python -m yt_dl_manager init
+   
+   # Or force overwrite existing config
+   python -m yt_dl_manager init --force
    ```
 
 ### Basic Usage
 
 ```bash
-# Add URLs to download queue (database auto-created on first use)
-python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-python -m yt_dl_manager.add_to_queue "https://vimeo.com/123456789"
+# Add URLs to download queue
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python -m yt_dl_manager add "https://vimeo.com/123456789"
 
 # Start the daemon (runs continuously)
-python -m yt_dl_manager.daemon
+python -m yt_dl_manager daemon
 ```
 
 ## 📋 Detailed Usage
 
 ### Adding Downloads
 
-The `add_to_queue.py` script provides intelligent duplicate handling:
+The `add` command provides intelligent duplicate handling:
 
 ```bash
 # Add a new URL
-python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=example"
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 # Output: URL added to queue: https://www.youtube.com/watch?v=example
 
 # Try to add the same URL again
-python -m yt_dl_manager.add_to_queue "https://www.youtube.com/watch?v=example"
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 # Output: URL already exists in queue: https://www.youtube.com/watch?v=example
 #         Status: pending
-
-# Check queue length
-python -m yt_dl_manager.add_to_queue --help  # Shows current queue length
 ```
 
 ### Running the Daemon
@@ -88,10 +86,25 @@ python -m yt_dl_manager.add_to_queue --help  # Shows current queue length
 The daemon polls the database every 10 seconds and processes pending downloads:
 
 ```bash
-python -m yt_dl_manager.daemon
+python -m yt_dl_manager daemon
 # Output: Daemon started. Polling for pending downloads...
 #         Found 2 pending downloads.
 #         Downloaded: downloads/youtube/Rick Astley - Never Gonna Give You Up.mp4
+```
+
+### Configuration Management
+
+Initialize or manage configuration:
+
+```bash
+# Create default configuration file
+python -m yt_dl_manager init
+
+# Force overwrite existing config
+python -m yt_dl_manager init --force
+
+# Show help for all commands
+python -m yt_dl_manager --help
 ```
 
 ### File Organization
@@ -129,7 +142,7 @@ DATABASE_PATH = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_
 
 To customize, edit the config file or create a new default configuration:
 ```bash
-python -m yt_dl_manager.create_config
+python -m yt_dl_manager init
 ```
 
 ## 🧪 Development & Testing
@@ -148,20 +161,23 @@ python -m pytest tests/test_daemon.py -v
 ```
 ```
 ## Project Structure
+```
 yt-dl-manager/
 ├── yt_dl_manager/         # Main package directory
 │   ├── __init__.py
+│   ├── __main__.py        # CLI entry point with subcommands (init, daemon, add)
 │   ├── daemon.py          # Main daemon service
-│   ├── add_to_queue.py    # CLI tool for adding URLs
+│   ├── add_to_queue.py    # URL addition logic
 │   ├── queue.py           # Centralized queue management class
 │   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
 │   ├── config.py          # Configuration management with platformdirs
 │   └── create_config.py   # Default configuration creation utility
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (21 test cases)
+│   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
-│   ├── test_queue.py      # Queue class tests (20 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (12 test cases)
+│   ├── test_queue.py      # Queue class tests (26 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (15 test cases)
+│   ├── test_create_config.py # Configuration tests (3 test cases)
 │   └── test_utils.py      # Test helpers
 ├── requirements.txt       # Dependencies
 ├── LICENSE                # ISC license
@@ -170,11 +186,12 @@ yt-dl-manager/
 
 ### Test Coverage
 
-- **Daemon Tests (21 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
 - **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
-- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (12 cases)**: Low-level database operations, schema management, data integrity
-- **Quality Metrics**: 100% test pass rate (61/61), 10/10 pylint score, CI/CD pipeline
+- **Queue Tests (26 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (15 cases)**: Low-level database operations, schema management, data integrity
+- **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
+- **Quality Metrics**: 100% test pass rate (63/63), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`
