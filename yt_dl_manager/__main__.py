@@ -37,6 +37,9 @@ def main():
         daemon_main()
     elif args.command == "add":
         add_to_queue_main(args)
+    # display help if no command is provided
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":

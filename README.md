@@ -56,6 +56,8 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 ### Basic Usage
 
 ```bash
+# Show help
+python -m yt_dl_manager
 # Add URLs to download queue
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 python -m yt_dl_manager add "https://vimeo.com/123456789"
