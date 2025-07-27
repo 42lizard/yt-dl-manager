@@ -24,5 +24,4 @@ def create_default_config():
         config.write(configfile)
     print(f"Default configuration created at: {config_file_path}")
 
-if __name__ == "__main__":
-    create_default_config()
+

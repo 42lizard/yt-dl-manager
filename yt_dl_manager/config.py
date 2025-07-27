@@ -13,12 +13,9 @@ def get_config_path():
     return config_dir / CONFIG_FILE_NAME
 
 def load_config():
-    """Load configuration from file, creating default if needed."""
+    """Load configuration from file."""
     config_parser = configparser.ConfigParser()
     config_file_path = get_config_path()
-    if not config_file_path.exists():
-        # If config file doesn't exist, create a default one
-        create_default_config()
     config_parser.read(config_file_path)
     return config_parser
 

@@ -1,7 +1,8 @@
 """Script to add media URLs to the yt-dl-manager SQLite queue."""
 
 import sys
-from yt_dl_manager.queue import Queue
+from .queue import Queue
+from .config import get_config_path
 
 class AddToQueue:
     """Class to manage adding URLs to the yt-dl-manager queue."""
@@ -19,9 +20,18 @@ class AddToQueue:
         """Return the number of items in the queue."""
         return self.queue.get_queue_length()
 
+def main(args):
+    """Main function for adding a URL to the queue."""
+    config_file_path = get_config_path()
+    if not config_file_path.exists():
+        print("Config file not found. Please run 'yt-dl-manager init' to create one.")
+        return
+    adder = AddToQueue()
+    adder.add_url(args.url)
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: python add_to_queue.py <media_url>")
+        print("Usage: python -m yt_dl_manager.add_to_queue <media_url>")
         sys.exit(1)
     input_url = sys.argv[1]
     adder = AddToQueue()

@@ -3,7 +3,7 @@
 import time
 import yt_dlp
 from .queue import Queue
-from .config import config
+from .config import config, get_config_path
 
 POLL_INTERVAL = 10  # seconds
 MAX_RETRIES = 3
@@ -86,6 +86,14 @@ class YTDLManagerDaemon:
         except KeyboardInterrupt:
             print('Daemon stopped.')
 
-if __name__ == '__main__':
+def main():
+    """Main function for the daemon."""
+    config_file_path = get_config_path()
+    if not config_file_path.exists():
+        print("Config file not found. Please run 'yt-dl-manager init' to create one.")
+        return
     daemon = YTDLManagerDaemon()
     daemon.run()
+
+if __name__ == '__main__':
+    main()
