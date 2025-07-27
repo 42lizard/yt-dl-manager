@@ -1,10 +1,14 @@
+"""This module provides a CLI for yt-dl-manager."""
+
 import argparse
+
 from .create_config import create_default_config
 from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
-import os
+
 
 def main():
+    """Main function for the CLI."""
     parser = argparse.ArgumentParser(
         description="yt-dl-manager: A tool for managing youtube-dl downloads."
     )
@@ -17,7 +21,7 @@ def main():
     )
 
     # daemon command
-    daemon_parser = subparsers.add_parser("daemon", help="Run the download daemon.")
+    subparsers.add_parser("daemon", help="Run the download daemon.")
 
     # add command
     add_parser = subparsers.add_parser("add", help="Add a video to the queue.")

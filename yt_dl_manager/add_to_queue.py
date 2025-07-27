@@ -26,8 +26,8 @@ def main(args):
     if not config_file_path.exists():
         print("Config file not found. Please run 'yt-dl-manager init' to create one.")
         return
-    adder = AddToQueue()
-    adder.add_url(args.url)
+    queue_adder = AddToQueue()
+    queue_adder.add_url(args.url)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

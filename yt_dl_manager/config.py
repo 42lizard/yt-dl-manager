@@ -2,7 +2,6 @@
 import configparser
 from pathlib import Path
 from platformdirs import user_config_dir
-from .create_config import create_default_config
 
 APP_NAME = "yt-dl-manager"
 CONFIG_FILE_NAME = "config.ini"

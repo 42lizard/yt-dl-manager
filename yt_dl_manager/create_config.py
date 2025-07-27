@@ -15,8 +15,7 @@ def create_default_config(force=False):
     config_file_path = config_dir / CONFIG_FILE_NAME
 
     if config_file_path.exists() and not force:
-        print(f"Config file already exists at: {config_file_path}")
-        print("Use --force to overwrite.")
+        print(f"Config file already exists at: {config_file_path}\nUse --force to overwrite.")
         return
 
     config = configparser.ConfigParser()
@@ -28,5 +27,3 @@ def create_default_config(force=False):
     with open(config_file_path, 'w', encoding='utf-8') as configfile:
         config.write(configfile)
     print(f"Default configuration created at: {config_file_path}")
-
-
