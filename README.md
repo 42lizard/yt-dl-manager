@@ -159,8 +159,9 @@ pylint yt_dl_manager
 # Run tests in specific file
 python -m pytest tests/test_daemon.py -v
 ```
-```
+
 ## Project Structure
+
 ```
 yt-dl-manager/
 ├── yt_dl_manager/         # Main package directory
