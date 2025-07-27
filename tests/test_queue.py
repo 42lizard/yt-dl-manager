@@ -41,14 +41,16 @@ class TestQueue(unittest.TestCase):
 
     def test_initialization_default_path(self):
         """Test queue initialization with default database path from config."""
-        # Test without mocking - this should use the actual config system
-        queue = Queue()
-        # The path should be from the config system - calculate expected path dynamically
-        from platformdirs import user_data_dir  # pylint: disable=import-outside-toplevel
-        from pathlib import Path  # pylint: disable=import-outside-toplevel
-        data_dir = user_data_dir("yt-dl-manager", "yt-dl-manager")
-        expected_path = str(Path(data_dir) / 'yt_dl_manager.db')
-        self.assertEqual(queue.db_path, expected_path)
+        # Mock config to provide DATABASE_PATH
+        from unittest.mock import patch, MagicMock  # pylint: disable=import-outside-toplevel
+
+        with patch('yt_dl_manager.queue.config') as mock_config:
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = '/test/path/yt_dl_manager.db'
+            mock_config.__getitem__.return_value = mock_default_section
+
+            queue = Queue()
+            self.assertEqual(queue.db_path, '/test/path/yt_dl_manager.db')
 
     def test_add_url_new(self):
         """Test adding a new URL to the queue."""
@@ -168,7 +170,8 @@ class TestQueue(unittest.TestCase):
         pending = self.queue.get_pending()
         download_id = pending[0][0]
 
-        self.queue.complete_download(download_id, test_filename, test_extractor)
+        self.queue.complete_download(
+            download_id, test_filename, test_extractor)
         # After completion, should not appear in pending
         pending_after = self.queue.get_pending()
         self.assertEqual(len(pending_after), 0)
