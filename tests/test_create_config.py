@@ -1,12 +1,11 @@
 """Unit tests for create_config.py module."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from yt_dl_manager.create_config import create_default_config, APP_NAME, CONFIG_FILE_NAME
+from yt_dl_manager.create_config import create_default_config, CONFIG_FILE_NAME
 
 
 class TestCreateConfig(unittest.TestCase):
@@ -15,6 +14,7 @@ class TestCreateConfig(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
         # Create a temporary directory for config files
+        # pylint: disable=consider-using-with
         self.temp_config_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_config_dir.cleanup)
 
