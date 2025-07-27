@@ -12,6 +12,9 @@ def main():
 
     # init command
     init_parser = subparsers.add_parser("init", help="Create default config file.")
+    init_parser.add_argument(
+        "-f", "--force", action="store_true", help="Force overwrite of existing config file."
+    )
 
     # daemon command
     daemon_parser = subparsers.add_parser("daemon", help="Run the download daemon.")
@@ -23,7 +26,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "init":
-        create_default_config()
+        create_default_config(force=args.force)
     elif args.command == "daemon":
         daemon_main()
     elif args.command == "add":
