@@ -46,12 +46,14 @@ class TestDatabaseUtils(unittest.TestCase):
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested, retries) "
             "VALUES (?, ?, ?, ?)",
-            ("https://test1.com", "pending", datetime.now(timezone.utc).isoformat(), 0)
+            ("https://test1.com", "pending",
+             datetime.now(timezone.utc).isoformat(), 0)
         )
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested, retries) "
             "VALUES (?, ?, ?, ?)",
-            ("https://test2.com", "downloaded", datetime.now(timezone.utc).isoformat(), 0)
+            ("https://test2.com", "downloaded",
+             datetime.now(timezone.utc).isoformat(), 0)
         )
         conn.commit()
         conn.close()
@@ -92,7 +94,8 @@ class TestDatabaseUtils(unittest.TestCase):
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "downloading", datetime.now(timezone.utc).isoformat())
+            ("https://test.com", "downloading",
+             datetime.now(timezone.utc).isoformat())
         )
         conn.commit()
         row_id = cur.lastrowid
@@ -126,7 +129,8 @@ class TestDatabaseUtils(unittest.TestCase):
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "downloading", datetime.now(timezone.utc).isoformat())
+            ("https://test.com", "downloading",
+             datetime.now(timezone.utc).isoformat())
         )
         conn.commit()
         row_id = cur.lastrowid

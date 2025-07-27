@@ -4,6 +4,7 @@ import logging
 from .db_utils import DatabaseUtils
 from .config import config
 
+
 class Queue:
     """Centralized queue management class for yt-dl-manager.
 
@@ -46,12 +47,15 @@ class Queue:
         try:
             result = self.db.add_url(media_url)
             if result[0]:
-                self.logger.info("Successfully added URL to queue: %s", media_url)
+                self.logger.info(
+                    "Successfully added URL to queue: %s", media_url)
             else:
-                self.logger.warning("URL already exists in queue: %s", media_url)
+                self.logger.warning(
+                    "URL already exists in queue: %s", media_url)
             return result
         except Exception as e:
-            self.logger.error("Failed to add URL to queue: %s - %s", media_url, str(e))
+            self.logger.error(
+                "Failed to add URL to queue: %s - %s", media_url, str(e))
             raise
 
     def get_pending(self):
@@ -69,7 +73,8 @@ class Queue:
             self.logger.debug("Found %d pending downloads", len(pending))
             return pending
         except Exception as e:
-            self.logger.error("Failed to retrieve pending downloads: %s", str(e))
+            self.logger.error(
+                "Failed to retrieve pending downloads: %s", str(e))
             raise
 
     def start_download(self, download_id):
@@ -88,9 +93,11 @@ class Queue:
         self.logger.info("Starting download with ID: %d", download_id)
         try:
             self.db.mark_downloading(download_id)
-            self.logger.info("Successfully marked download %d as downloading", download_id)
+            self.logger.info(
+                "Successfully marked download %d as downloading", download_id)
         except Exception as e:
-            self.logger.error("Failed to start download %d: %s", download_id, str(e))
+            self.logger.error(
+                "Failed to start download %d: %s", download_id, str(e))
             raise
 
     def complete_download(self, download_id, filename, extractor):
@@ -112,12 +119,14 @@ class Queue:
         if not isinstance(extractor, str) or not extractor.strip():
             raise ValueError("extractor must be a non-empty string")
 
-        self.logger.info("Completing download %d with filename: %s", download_id, filename)
+        self.logger.info(
+            "Completing download %d with filename: %s", download_id, filename)
         try:
             self.db.mark_downloaded(download_id, filename, extractor)
             self.logger.info("Successfully completed download %d", download_id)
         except Exception as e:
-            self.logger.error("Failed to complete download %d: %s", download_id, str(e))
+            self.logger.error(
+                "Failed to complete download %d: %s", download_id, str(e))
             raise
 
     def fail_download(self, download_id):
@@ -136,9 +145,11 @@ class Queue:
         self.logger.warning("Marking download %d as failed", download_id)
         try:
             self.db.mark_failed(download_id)
-            self.logger.info("Successfully marked download %d as failed", download_id)
+            self.logger.info(
+                "Successfully marked download %d as failed", download_id)
         except Exception as e:
-            self.logger.error("Failed to mark download %d as failed: %s", download_id, str(e))
+            self.logger.error(
+                "Failed to mark download %d as failed: %s", download_id, str(e))
             raise
 
     def retry_download(self, download_id):
@@ -158,9 +169,11 @@ class Queue:
         try:
             self.db.increment_retries(download_id)
             self.db.set_status_to_pending(download_id)
-            self.logger.info("Successfully prepared download %d for retry", download_id)
+            self.logger.info(
+                "Successfully prepared download %d for retry", download_id)
         except Exception as e:
-            self.logger.error("Failed to prepare download %d for retry: %s", download_id, str(e))
+            self.logger.error(
+                "Failed to prepare download %d for retry: %s", download_id, str(e))
             raise
 
     def increment_retries(self, download_id):
@@ -179,7 +192,8 @@ class Queue:
         self.logger.debug("Incrementing retries for download %d", download_id)
         try:
             self.db.increment_retries(download_id)
-            self.logger.debug("Successfully incremented retries for download %d", download_id)
+            self.logger.debug(
+                "Successfully incremented retries for download %d", download_id)
         except Exception as e:
             self.logger.error("Failed to increment retries for download %d: %s",
                               download_id, str(e))
@@ -201,9 +215,11 @@ class Queue:
         self.logger.debug("Setting download %d status to pending", download_id)
         try:
             self.db.set_status_to_pending(download_id)
-            self.logger.debug("Successfully set download %d to pending", download_id)
+            self.logger.debug(
+                "Successfully set download %d to pending", download_id)
         except Exception as e:
-            self.logger.error("Failed to set download %d to pending: %s", download_id, str(e))
+            self.logger.error(
+                "Failed to set download %d to pending: %s", download_id, str(e))
             raise
 
     def get_queue_length(self):

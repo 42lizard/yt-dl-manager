@@ -119,6 +119,7 @@ class TestAddToQueue(unittest.TestCase):
 
         # Mock datetime to control timestamp
         fixed_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
         class FixedDateTime(datetime):
             """Mock datetime class for fixed timestamp in tests."""
             @classmethod
@@ -151,7 +152,8 @@ class TestAddToQueue(unittest.TestCase):
             test_queue_manager = AddToQueue()
 
             with self.assertRaises(sqlite3.OperationalError):
-                test_queue_manager.add_url("https://www.youtube.com/watch?v=test")
+                test_queue_manager.add_url(
+                    "https://www.youtube.com/watch?v=test")
 
     def test_add_url_edge_case_empty_result(self):
         """Test duplicate URL handling when database query returns no result."""

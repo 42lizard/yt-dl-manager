@@ -160,7 +160,6 @@ class TestYTDLManagerDaemon(unittest.TestCase):
 
         self.assertEqual(retries, 2)
 
-    @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_success(self, mock_print, mock_ytdl_class):
@@ -182,8 +181,14 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Test download
-        self.daemon.download_media(row_id, test_url, 0)
+        # Mock config to provide TARGET_FOLDER
+        with patch('yt_dl_manager.daemon.config') as mock_config:
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = 'test_downloads'
+            mock_config.__getitem__.return_value = mock_default_section
+
+            # Test download
+            self.daemon.download_media(row_id, test_url, 0)
 
         # Verify yt-dlp was called correctly
         mock_ytdl_instance.extract_info.assert_called_once_with(
@@ -209,7 +214,6 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         # Verify success message was printed
         mock_print.assert_called_with("Downloaded: /path/to/test_video.mp4")
 
-    @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_with_retry(self, mock_print, mock_ytdl_class):
@@ -227,8 +231,14 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Test download with retry count below max
-        self.daemon.download_media(row_id, test_url, 1)
+        # Mock config to provide TARGET_FOLDER
+        with patch('yt_dl_manager.daemon.config') as mock_config:
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = 'test_downloads'
+            mock_config.__getitem__.return_value = mock_default_section
+
+            # Test download with retry count below max
+            self.daemon.download_media(row_id, test_url, 1)
 
         # Verify database was updated for retry
         conn = sqlite3.connect(self.test_db_path)
@@ -250,7 +260,6 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         )
         mock_print.assert_called_with(expected_message)
 
-    @patch.dict(os.environ, {'TARGET_FOLDER': 'test_downloads'})
     @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_max_retries(self, mock_print, mock_ytdl_class):
@@ -268,8 +277,14 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url, retries=MAX_RETRIES-1)
 
-        # Test download at max retries
-        self.daemon.download_media(row_id, test_url, MAX_RETRIES-1)
+        # Mock config to provide TARGET_FOLDER
+        with patch('yt_dl_manager.daemon.config') as mock_config:
+            mock_default_section = MagicMock()
+            mock_default_section.__getitem__.return_value = 'test_downloads'
+            mock_config.__getitem__.return_value = mock_default_section
+
+            # Test download at max retries
+            self.daemon.download_media(row_id, test_url, MAX_RETRIES-1)
 
         # Verify database was updated to failed
         conn = sqlite3.connect(self.test_db_path)

@@ -32,7 +32,8 @@ class TestCreateConfig(unittest.TestCase):
         self.addCleanup(self.patcher_config_dir.stop)
         self.addCleanup(self.patcher_data_dir.stop)
 
-        self.config_file_path = Path(self.temp_config_dir.name) / CONFIG_FILE_NAME
+        self.config_file_path = Path(
+            self.temp_config_dir.name) / CONFIG_FILE_NAME
 
     def test_create_default_config_new_file(self):
         """Test that a new config file is created when it doesn't exist."""

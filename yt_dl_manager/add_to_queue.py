@@ -4,8 +4,10 @@ import sys
 from .queue import Queue
 from .config import get_config_path
 
+
 class AddToQueue:
     """Class to manage adding URLs to the yt-dl-manager queue."""
+
     def __init__(self):
         """Initialize with the database path."""
         self.queue = Queue()
@@ -20,6 +22,7 @@ class AddToQueue:
         """Return the number of items in the queue."""
         return self.queue.get_queue_length()
 
+
 def main(args):
     """Main function for adding a URL to the queue."""
     config_file_path = get_config_path()
@@ -28,6 +31,7 @@ def main(args):
         return
     queue_adder = AddToQueue()
     queue_adder.add_url(args.url)
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

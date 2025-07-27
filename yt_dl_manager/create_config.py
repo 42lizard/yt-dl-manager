@@ -6,6 +6,7 @@ from platformdirs import user_config_dir, user_data_dir, user_downloads_dir
 APP_NAME = "yt-dl-manager"
 CONFIG_FILE_NAME = "config.ini"
 
+
 def create_default_config(force=False):
     """Create a default configuration file with standard settings."""
     config_dir = Path(user_config_dir(APP_NAME, APP_NAME))
@@ -15,7 +16,8 @@ def create_default_config(force=False):
     config_file_path = config_dir / CONFIG_FILE_NAME
 
     if config_file_path.exists() and not force:
-        print(f"Config file already exists at: {config_file_path}\nUse --force to overwrite.")
+        print(
+            f"Config file already exists at: {config_file_path}\nUse --force to overwrite.")
         return
 
     config = configparser.ConfigParser()

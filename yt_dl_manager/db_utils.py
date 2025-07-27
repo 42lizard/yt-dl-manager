@@ -13,6 +13,7 @@ class DownloadStatus(Enum):
     DOWNLOADED = 'downloaded'
     FAILED = 'failed'
 
+
 def ensure_database_schema(db_path):
     """Create or verify the downloads table schema.
     Args:
@@ -34,6 +35,7 @@ def ensure_database_schema(db_path):
         # we'll let the error happen later during actual operations
         pass
 
+
 # Database schema definition
 DOWNLOADS_TABLE_SCHEMA = '''
 CREATE TABLE IF NOT EXISTS downloads (
@@ -48,8 +50,10 @@ CREATE TABLE IF NOT EXISTS downloads (
 );
 '''
 
+
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
+
     def __init__(self, db_path=None):
         """Initialize DatabaseUtils with database path.
         Args:
@@ -172,7 +176,8 @@ class DatabaseUtils:
             cur.execute(
                 f"INSERT INTO downloads (url, status, timestamp_requested) "
                 f"VALUES (?, '{DownloadStatus.PENDING.value}', ?)",
-                (media_url, datetime.datetime.now(datetime.timezone.utc).isoformat())
+                (media_url, datetime.datetime.now(
+                    datetime.timezone.utc).isoformat())
             )
             conn.commit()
             return True, f"URL added to queue: {media_url}"
@@ -212,7 +217,7 @@ class DatabaseUtils:
 
         Returns:
             dict: Dictionary with counts for each status (pending, downloading, downloaded, failed).
-            
+
         Raises:
             sqlite3.OperationalError: If database connection or query fails.
         """
@@ -242,4 +247,5 @@ class DatabaseUtils:
 
             return status_counts
         except sqlite3.OperationalError as e:
-            raise sqlite3.OperationalError(f"Failed to get queue status: {e}") from e
+            raise sqlite3.OperationalError(
+                f"Failed to get queue status: {e}") from e

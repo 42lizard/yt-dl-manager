@@ -8,8 +8,10 @@ from .config import config, get_config_path
 POLL_INTERVAL = 10  # seconds
 MAX_RETRIES = 3
 
+
 class YTDLManagerDaemon:
     """Daemon for managing yt-dlp downloads from an SQLite queue."""
+
     def __init__(self):
         """Initialize the daemon with the database path."""
         self.running = True
@@ -86,6 +88,7 @@ class YTDLManagerDaemon:
         except KeyboardInterrupt:
             print('Daemon stopped.')
 
+
 def main():
     """Main function for the daemon."""
     config_file_path = get_config_path()
@@ -94,6 +97,7 @@ def main():
         return
     daemon = YTDLManagerDaemon()
     daemon.run()
+
 
 if __name__ == '__main__':
     main()

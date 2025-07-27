@@ -15,7 +15,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # init command
-    init_parser = subparsers.add_parser("init", help="Create default config file.")
+    init_parser = subparsers.add_parser(
+        "init", help="Create default config file.")
     init_parser.add_argument(
         "-f", "--force", action="store_true", help="Force overwrite of existing config file."
     )
@@ -25,7 +26,8 @@ def main():
 
     # add command
     add_parser = subparsers.add_parser("add", help="Add a video to the queue.")
-    add_parser.add_argument("url", type=str, help="The URL of the video to download.")
+    add_parser.add_argument(
+        "url", type=str, help="The URL of the video to download.")
 
     args = parser.parse_args()
 
@@ -35,6 +37,7 @@ def main():
         daemon_main()
     elif args.command == "add":
         add_to_queue_main(args)
+
 
 if __name__ == "__main__":
     main()
