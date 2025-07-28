@@ -220,6 +220,7 @@ class DatabaseUtils:
                 else:
                     message = f"URL already exists in queue: {media_url}\nStatus: {status}"
                 return False, message, row_id
+            # Edge case: IntegrityError but no row found - should not normally happen
             message = f"URL already exists in queue: {media_url}"
             return False, message, None
         finally:
