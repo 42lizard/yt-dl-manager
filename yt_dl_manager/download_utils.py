@@ -6,7 +6,7 @@ from .config import config
 
 def download_media(queue, row_id, url, retries, max_retries=3):
     """Download media using yt-dlp, update database, and handle retries."""
-    target_folder = config['DEFAULT']['TARGET_FOLDER']
+    target_folder = config['DEFAULT']['target_folder']
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
         'outtmpl': f'{target_folder}/%(extractor)s/%(title)s.%(ext)s',

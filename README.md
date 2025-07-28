@@ -145,8 +145,8 @@ The application automatically creates configuration files in user directories:
 **Default Settings (example for macOS):**
 ```ini
 [DEFAULT]
-TARGET_FOLDER = /Users/username/Downloads/yt-dl-manager
-DATABASE_PATH = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
+target_folder = /Users/username/Downloads/yt-dl-manager
+database_path = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
 ```
 
 *Note: Actual paths will vary by operating system. The application uses `platformdirs` to automatically determine the appropriate user directories for your OS.*

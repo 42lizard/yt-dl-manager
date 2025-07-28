@@ -22,8 +22,8 @@ def create_default_config(force=False):
 
     config = configparser.ConfigParser()
     config['DEFAULT'] = {
-        'TARGET_FOLDER': str(Path(user_downloads_dir()) / APP_NAME),
-        'DATABASE_PATH': str(data_dir / 'yt_dl_manager.db')
+        'target_folder': str(Path(user_downloads_dir()) / APP_NAME),
+        'database_path': str(data_dir / 'yt_dl_manager.db')
     }
 
     with open(config_file_path, 'w', encoding='utf-8') as configfile:

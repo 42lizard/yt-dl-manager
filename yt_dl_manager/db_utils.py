@@ -76,7 +76,7 @@ class DatabaseUtils:
         Args:
             db_path (str, optional): Path to the SQLite database file. Defaults to None.
         """
-        self.db_path = db_path if db_path else config['DEFAULT']['DATABASE_PATH']
+        self.db_path = db_path if db_path else config['DEFAULT']['database_path']
         self.ensure_schema()
 
     def ensure_schema(self):

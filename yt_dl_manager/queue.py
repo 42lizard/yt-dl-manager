@@ -29,7 +29,7 @@ class Queue:
         self.logger = logging.getLogger(__name__)
 
         if db_path is None:
-            self.db_path = config['DEFAULT']['DATABASE_PATH']
+            self.db_path = config['DEFAULT']['database_path']
         else:
             self.db_path = db_path
         self.db = DatabaseUtils(

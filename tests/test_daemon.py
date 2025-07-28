@@ -180,7 +180,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Mock config to provide TARGET_FOLDER
+        # Mock config to provide target_folder
         with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
@@ -230,7 +230,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Mock config to provide TARGET_FOLDER
+        # Mock config to provide target_folder
         with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
@@ -275,7 +275,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url, retries=MAX_RETRIES-1)
 
-        # Mock config to provide TARGET_FOLDER
+        # Mock config to provide target_folder
         with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
