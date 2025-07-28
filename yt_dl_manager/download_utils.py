@@ -19,7 +19,9 @@ def download_media(queue, row_id, url, retries, max_retries=3):
     }
     # Atomically claim the job for download
     if not queue.claim_pending_for_download(row_id):
-        logger.info("Skipping download for row %s: already being processed.", row_id)
+        logger.info(
+            "Skipping download for row %s: already being processed.",
+            row_id)
         return
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -40,7 +42,7 @@ def download_media(queue, row_id, url, retries, max_retries=3):
             queue.set_status_to_pending(row_id)
             retry_msg = (
                 f"Download failed for {url}, will retry "
-                f"(attempt {retries+1}/{max_retries}): {err}"
+                f"(attempt {retries + 1}/{max_retries}): {err}"
             )
             logger.warning(retry_msg)
             print(retry_msg)  # Also print for daemon output

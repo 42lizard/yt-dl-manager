@@ -12,7 +12,11 @@ from .add_to_queue import main as add_to_queue_main
 def main():
     """Main function for the CLI."""
     # Set up logging
-    log_level = getattr(__import__('logging'), os.getenv('YT_DL_MANAGER_LOG_LEVEL', 'INFO').upper())
+    log_level = getattr(
+        __import__('logging'),
+        os.getenv(
+            'YT_DL_MANAGER_LOG_LEVEL',
+            'INFO').upper())
     setup_logging(log_level)
 
     parser = argparse.ArgumentParser(
@@ -24,8 +28,10 @@ def main():
     init_parser = subparsers.add_parser(
         "init", help="Create default config file.")
     init_parser.add_argument(
-        "-f", "--force", action="store_true", help="Force overwrite of existing config file."
-    )
+        "-f",
+        "--force",
+        action="store_true",
+        help="Force overwrite of existing config file.")
 
     # daemon command
     subparsers.add_parser("daemon", help="Run the download daemon.")

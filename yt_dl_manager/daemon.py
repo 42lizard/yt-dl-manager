@@ -74,7 +74,8 @@ def main():
     """Main function for the daemon."""
     config_file_path = get_config_path()
     if not config_file_path.exists():
-        logger.error("Config file not found. Please run 'yt-dl-manager init' to create one.")
+        logger.error(
+            "Config file not found. Please run 'yt-dl-manager init' to create one.")
         return
     daemon = YTDLManagerDaemon()
     daemon.run()

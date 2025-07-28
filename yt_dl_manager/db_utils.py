@@ -62,10 +62,11 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADING.value}' "
+            "UPDATE downloads SET status = ? "
             "WHERE id = ? AND status = ?",
-            (row_id, DownloadStatus.PENDING.value)
-        )
+            (DownloadStatus.DOWNLOADING.value,
+             row_id,
+             DownloadStatus.PENDING.value))
         updated = cur.rowcount
         conn.commit()
         conn.close()
@@ -101,8 +102,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"SELECT id, url, retries FROM downloads \
-              WHERE status = '{DownloadStatus.PENDING.value}'"
+            "SELECT id, url, retries FROM downloads WHERE status = ?",
+            (DownloadStatus.PENDING.value,)
         )
         rows = cur.fetchall()
         conn.close()
@@ -116,8 +117,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADING.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.DOWNLOADING.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -132,10 +133,10 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADED.value}', "
+            "UPDATE downloads SET status = ?, "
             "timestamp_downloaded = datetime('now'), "
             "final_filename = ?, extractor = ? WHERE id = ?",
-            (filename, extractor, row_id)
+            (DownloadStatus.DOWNLOADED.value, filename, extractor, row_id)
         )
         conn.commit()
         conn.close()
@@ -148,8 +149,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.FAILED.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.FAILED.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -174,8 +175,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.PENDING.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.PENDING.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -192,10 +193,11 @@ class DatabaseUtils:
         cur = conn.cursor()
         try:
             cur.execute(
-                f"INSERT INTO downloads (url, status, timestamp_requested) "
-                f"VALUES (?, '{DownloadStatus.PENDING.value}', ?)",
+                "INSERT INTO downloads (url, status, timestamp_requested) "
+                "VALUES (?, ?, ?)",
                 (
                     media_url,
+                    DownloadStatus.PENDING.value,
                     datetime.datetime.now(
                         datetime.timezone.utc
                     ).isoformat(),

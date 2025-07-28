@@ -33,7 +33,8 @@ def main(args):
     """Main function for adding a URL to the queue."""
     config_file_path = get_config_path()
     if not config_file_path.exists():
-        logger.error("Config file not found. Please run 'yt-dl-manager init' to create one.")
+        logger.error(
+            "Config file not found. Please run 'yt-dl-manager init' to create one.")
         print("Config file not found. Please run 'yt-dl-manager init' to create one.")
         return
     queue_adder = AddToQueue()

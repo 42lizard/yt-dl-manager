@@ -20,7 +20,9 @@ def create_default_config(force=False):
 
     if config_file_path.exists() and not force:
         message = f"Config file already exists at: {config_file_path}\nUse --force to overwrite."
-        logger.info("Config creation skipped: file already exists at %s", config_file_path)
+        logger.info(
+            "Config creation skipped: file already exists at %s",
+            config_file_path)
         print(message)  # Keep as print for CLI user feedback
         return
 
