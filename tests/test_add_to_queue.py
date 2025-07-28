@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import io
 import sys
+import pathlib
 from yt_dl_manager.add_to_queue import AddToQueue
 from yt_dl_manager.queue import Queue
 from yt_dl_manager import add_to_queue
@@ -19,7 +20,7 @@ from tests.test_utils import create_test_schema
 class TestAddToQueue(unittest.TestCase):
     """Unit tests for the AddToQueue class and related queue operations."""
 
-    def test_add_url_with_download_flag(self):
+    def test_add_url_with_download_flag(self):  # pylint: disable=too-many-locals
         """Test adding a URL with --download triggers immediate download logic."""
         test_url = "https://www.youtube.com/watch?v=immediate"
         test_db_fd, test_db_path = tempfile.mkstemp()
@@ -27,34 +28,43 @@ class TestAddToQueue(unittest.TestCase):
         create_test_schema(test_db_path)
         test_queue = Queue(db_path=test_db_path)
         queue_adder = AddToQueue(queue=test_queue)
-        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl, \
-                patch.object(test_queue, 'claim_pending_for_download', return_value=True) as mock_claim, \
-                patch.object(test_queue, 'complete_download') as mock_complete:
-            mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
-                'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
-            }
-            mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = \
-                '/fake/path/Test Video.mp4'
+        # Create a temporary config file
+        temp_config_fd, temp_config_path = tempfile.mkstemp()
+        os.close(temp_config_fd)
+        config_content = f"[yt-dl-manager]\ndb_path={test_db_path}\n"
+        pathlib.Path(temp_config_path).write_text(
+            config_content, encoding='utf-8')
+        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
+            with patch.object(test_queue, 'claim_pending_for_download', return_value=True) as mock_claim:
+                with patch.object(test_queue, 'complete_download') as mock_complete:
+                    with patch.object(
+                            add_to_queue, 'get_config_path', return_value=pathlib.Path(temp_config_path)):
+                        mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
+                            'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
+                        }
+                        mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
+                            '/fake/path/Test Video.mp4')
 
-            class Args:
-                """Simple args container for CLI simulation in tests."""
-                url = test_url
-                download = True
-            with patch('yt_dl_manager.add_to_queue.AddToQueue', return_value=queue_adder):
-                captured_out = io.StringIO()
-                sys_stdout = sys.stdout
-                sys.stdout = captured_out
-                try:
-                    add_to_queue.main(Args())
-                finally:
-                    sys.stdout = sys_stdout
-                output = captured_out.getvalue()
-                print("DEBUG: captured output:", output)
-                assert "URL added to queue" in output
-                assert "Downloaded: /fake/path/Test Video.mp4" in output
-            mock_claim.assert_called()
-            mock_complete.assert_called()
+                        class Args:
+                            """Simple args container for CLI simulation in tests."""
+                            url = test_url
+                            download = True
+                        with patch('yt_dl_manager.add_to_queue.AddToQueue', return_value=queue_adder):
+                            captured_out = io.StringIO()
+                            sys_stdout = sys.stdout
+                            sys.stdout = captured_out
+                            try:
+                                add_to_queue.main(Args())
+                            finally:
+                                sys.stdout = sys_stdout
+                            output = captured_out.getvalue()
+                            print("DEBUG: captured output:", output)
+                            assert "URL added to queue" in output
+                            assert "Downloaded: /fake/path/Test Video.mp4" in output
+                        mock_claim.assert_called()
+                        mock_complete.assert_called()
         os.unlink(test_db_path)
+        os.unlink(temp_config_path)  # pylint: enable=too-many-locals
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -206,9 +216,8 @@ class TestAddToQueue(unittest.TestCase):
                 cur = conn.cursor()
                 try:
                     cur.execute(
-                        "INSERT INTO downloads (url, status, "
-                        "timestamp_requested) VALUES (?, 'pending', ?)",
-                        (url, datetime.now(timezone.utc).isoformat())
+                        "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
+                        (url, 'pending', datetime.now(timezone.utc).isoformat())
                     )
                     conn.commit()
                 except sqlite3.IntegrityError:

@@ -14,3 +14,4 @@ Instructions for copilot
 * keep docs streamlined and not overwhelming
 * do not break the markdown formatting in plan.md and readme.md
 * no automatic staging and commiting to the main branch.
+* must be compatible with python 3.8,3.9,3.10,3.11
