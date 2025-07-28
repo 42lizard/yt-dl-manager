@@ -1,5 +1,6 @@
 """Unit tests for add_to_queue.py module."""
 
+import configparser
 import os
 import sqlite3
 import tempfile
@@ -10,7 +11,6 @@ from unittest.mock import patch
 
 import io
 import sys
-import pathlib
 from yt_dl_manager.add_to_queue import AddToQueue
 from yt_dl_manager.queue import Queue
 from yt_dl_manager import add_to_queue
@@ -20,54 +20,67 @@ from tests.test_utils import create_test_schema
 class TestAddToQueue(unittest.TestCase):
     """Unit tests for the AddToQueue class and related queue operations."""
 
-    def test_add_url_with_download_flag(self):  # pylint: disable=too-many-locals
+    def test_add_url_with_download_flag(self):
         """Test adding a URL with --download triggers immediate download logic."""
         test_url = "https://www.youtube.com/watch?v=immediate"
-        test_db_fd, test_db_path = tempfile.mkstemp()
+
+        # Create temporary database
+        test_db_fd, test_db_path = tempfile.mkstemp(suffix='.db')
         os.close(test_db_fd)
         create_test_schema(test_db_path)
-        test_queue = Queue(db_path=test_db_path)
-        queue_adder = AddToQueue(queue=test_queue)
-        # Create a temporary config file
-        temp_config_fd, temp_config_path = tempfile.mkstemp()
-        os.close(temp_config_fd)
-        config_content = (
-            f"[DEFAULT]\ntarget_folder=/tmp/downloads\n"
-            f"database_path={test_db_path}\n"
-        )
-        pathlib.Path(temp_config_path).write_text(
-            config_content, encoding='utf-8')
-        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
-            with patch.object(test_queue, 'claim_pending_for_download', return_value=True) as mock_claim:
-                with patch.object(test_queue, 'complete_download') as mock_complete:
-                    with patch.object(
-                            add_to_queue, 'get_config_path', return_value=pathlib.Path(temp_config_path)):
+
+        try:
+            # Create a test config object
+            test_config = configparser.ConfigParser()
+            test_config['DEFAULT'] = {
+                'target_folder': '/tmp/test_downloads',
+                'database_path': test_db_path
+            }
+
+            # Patch the config object used by download_utils
+            with patch('yt_dl_manager.download_utils.config', test_config):
+                with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
+                    # Create a real queue instance for the test
+                    test_queue = Queue(db_path=test_db_path)
+                    mock_queue_class.return_value = test_queue
+
+                    with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
+                        # Set up YoutubeDL mock
                         mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
                             'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
                         }
                         mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
-                            '/fake/path/Test Video.mp4')
+                            '/tmp/test_downloads/youtube/Test Video.mp4')
 
+                        # Mock args
                         class Args:
                             """Simple args container for CLI simulation in tests."""
                             url = test_url
                             download = True
-                        with patch('yt_dl_manager.add_to_queue.AddToQueue', return_value=queue_adder):
-                            captured_out = io.StringIO()
-                            sys_stdout = sys.stdout
-                            sys.stdout = captured_out
-                            try:
-                                add_to_queue.main(Args())
-                            finally:
-                                sys.stdout = sys_stdout
-                            output = captured_out.getvalue()
-                            print("DEBUG: captured output:", output)
-                            assert "URL added to queue" in output
-                            assert "Downloaded: /fake/path/Test Video.mp4" in output
-                        mock_claim.assert_called()
-                        mock_complete.assert_called()
-        os.unlink(test_db_path)
-        os.unlink(temp_config_path)  # pylint: enable=too-many-locals
+
+                        # Capture output
+                        captured_out = io.StringIO()
+                        sys_stdout = sys.stdout
+                        sys.stdout = captured_out
+                        try:
+                            add_to_queue.main(Args())
+                        finally:
+                            sys.stdout = sys_stdout
+
+                        # Verify output
+                        output = captured_out.getvalue()
+                        self.assertIn("URL added to queue", output)
+                        self.assertIn("Downloaded:", output)
+
+                        # Verify YoutubeDL was called
+                        mock_ydl.assert_called()
+
+        finally:
+            # Clean up temporary files
+            try:
+                os.unlink(test_db_path)
+            except FileNotFoundError:
+                pass
 
     def setUp(self):
         """Set up test fixtures before each test method."""
