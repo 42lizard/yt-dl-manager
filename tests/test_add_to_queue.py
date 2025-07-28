@@ -32,8 +32,8 @@ class TestAddToQueue(unittest.TestCase):
         temp_config_fd, temp_config_path = tempfile.mkstemp()
         os.close(temp_config_fd)
         config_content = (
-            f"[DEFAULT]\nTARGET_FOLDER=/tmp/downloads\n"
-            f"[yt-dl-manager]\ndb_path={test_db_path}\n"
+            f"[DEFAULT]\ntarget_folder=/tmp/downloads\n"
+            f"database_path={test_db_path}\n"
         )
         pathlib.Path(temp_config_path).write_text(
             config_content, encoding='utf-8')
