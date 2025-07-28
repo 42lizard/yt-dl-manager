@@ -41,7 +41,11 @@ class TestAddToQueue(unittest.TestCase):
                 with patch('builtins.print') as mock_print:
                     add_to_queue.main(Args())
                     calls = [c[0][0] for c in mock_print.call_args_list]
-                    assert any("URL added to queue" in call for call in calls)
+                    try:
+                        assert any("URL added to queue" in call for call in calls)
+                    except AssertionError:
+                        print("DEBUG: print calls:", calls)
+                        raise
                     assert any(
                         "Downloaded: /fake/path/Test Video.mp4" in call for call in calls)
             mock_claim.assert_called()
