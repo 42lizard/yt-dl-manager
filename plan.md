@@ -10,20 +10,22 @@ A Python daemon that manages media downloads using yt-dlp with a user-friendly C
 yt-dl-manager/
 ├── yt_dl_manager/         # Main package directory
 │   ├── __init__.py
-│   ├── __main__.py        # CLI entry point with subcommands (init, daemon, add)
+│   ├── __main__.py        # CLI entry point with comprehensive subcommands
 │   ├── daemon.py          # Main daemon service
 │   ├── add_to_queue.py    # URL addition logic
 │   ├── queue.py           # Centralized queue management class
 │   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
+│   ├── maintenance.py     # Database maintenance commands
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download_utils.py  # Shared download logic with yt-dlp integration
 │   └── logging_config.py  # Centralized logging configuration
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (13 test cases)
-│   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   ├── test_daemon.py     # Daemon tests (15 test cases)
+│   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
 │   ├── test_queue.py      # Queue class tests (26 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (15 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (33 test cases)
+│   ├── test_maintenance.py # Maintenance commands tests (33 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   └── test_utils.py      # Test helpers
 ├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs)
@@ -72,6 +74,7 @@ Table: `downloads`
 
 ### ✅ Core Features (Complete)
 - [x] Modern CLI interface with subcommands (init, daemon, add) via __main__.py
+- [x] **Database maintenance commands** - Comprehensive queue and file management
 - [x] User-friendly configuration with platformdirs and init command
 - [x] SQLite3 schema and automatic migration (handled by db_utils.py)
 - [x] DownloadStatus enum for type-safe status management
@@ -82,7 +85,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue functionality with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] Comprehensive unit test suite (63 tests)
+- [x] **Comprehensive unit test suite (97 tests)**
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -90,6 +93,16 @@ Table: `downloads`
 - [x] Complete documentation with updated CLI examples
 - [x] **Centralized Queue class for consolidated queue handling**
 - [x] **Configuration management improvements with init command**
+
+### ✅ Database Maintenance Features (Complete)
+- [x] **Queue viewing commands** - List pending, failed, downloaded items with filters
+- [x] **Status dashboard** - Quick overview of queue and storage usage
+- [x] **Queue management** - Remove failed downloads, specific items by ID/URL
+- [x] **Retry functionality** - Reset failed/completed items back to pending
+- [x] **File verification** - Check downloaded files exist, auto-fix missing files
+- [x] **Redownload support** - Mark items for redownload when files are corrupted
+- [x] **Database cleanup** - Remove orphaned records, optimize with VACUUM
+- [x] **Data export** - Export queue data in JSON/CSV formats with filtering
 
 ### 🔮 Optional Future Enhancements
 - [ ] Thumbnail download and embedding
@@ -112,12 +125,13 @@ pylint yt_dl_manager
 ```
 
 ### Test Coverage
-- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (15 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
 - **CLI Tests (9 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
 - **Queue Tests (26 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (16 cases)**: Low-level database operations, schema management, data integrity
+- **Database Tests (33 cases)**: Extended database operations, maintenance functions, data integrity
+- **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **Quality Metrics**: 100% test pass rate (64/64), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (97/97), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.8, 3.9, 3.10, 3.11
@@ -148,10 +162,20 @@ pylint yt_dl_manager
 - Protected against malicious user input in all database interactions
 
 **Enhanced Testing & Quality**: 
-- Expanded test suite to 64 comprehensive tests covering all functionality
+- Expanded test suite to 97 comprehensive tests covering all functionality including maintenance commands
 - Updated test mocking strategy for new configuration system compatibility
 - Maintained high code quality with 10/10 pylint score
 - All tests passing with robust CI/CD pipeline
+
+**Database Maintenance Commands**: Implemented comprehensive maintenance functionality:
+- Queue viewing commands (list pending/failed/downloaded with filters)
+- Status dashboard showing queue overview and storage usage
+- Queue management (remove failed items, specific items by ID/URL pattern)
+- Retry functionality to reset failed/completed items back to pending
+- File verification system to check downloaded files exist with auto-fix capability
+- Redownload support for corrupted files
+- Database cleanup with orphaned record removal and VACUUM optimization
+- Data export in JSON/CSV formats with optional filtering by status
 
 **Improved Configuration**: 
 - Streamlined config file creation with init command
