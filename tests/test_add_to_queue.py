@@ -58,7 +58,7 @@ class TestAddToQueue(unittest.TestCase):
                                 '/tmp/test_downloads/youtube/Test Video.mp4')
 
                             # Mock args
-                            class Args:
+                            class TestArgs:
                                 """Simple args container for CLI simulation in tests."""
                                 url = test_url
                                 download = True
@@ -68,7 +68,7 @@ class TestAddToQueue(unittest.TestCase):
                             sys_stdout = sys.stdout
                             sys.stdout = captured_out
                             try:
-                                add_to_queue.main(Args())
+                                add_to_queue.main(TestArgs())
                             finally:
                                 sys.stdout = sys_stdout
 
