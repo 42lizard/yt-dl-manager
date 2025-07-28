@@ -2,6 +2,10 @@
 
 import sqlite3
 import datetime
+import os
+import json
+import csv
+import io
 from enum import Enum
 from .config import config
 
@@ -275,3 +279,360 @@ class DatabaseUtils:
         except sqlite3.OperationalError as e:
             raise sqlite3.OperationalError(
                 f"Failed to get queue status: {e}") from e
+
+    def get_downloads_by_status(self, status, limit=None, sort_by='timestamp_requested',
+                                order='DESC', **filters):
+        """Get downloads filtered by status with optional filters.
+
+        Args:
+            status (str): Download status to filter by.
+            limit (int, optional): Maximum number of results.
+            sort_by (str): Field to sort by (timestamp_requested, retries, url, id).
+            order (str): Sort order (ASC, DESC).
+            **filters: Additional filters (retry_count, extractor).
+
+        Returns:
+            list: List of download records as dictionaries.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # Enable column access by name
+        cur = conn.cursor()
+
+        # Build query with filters
+        query = "SELECT * FROM downloads WHERE status = ?"
+        params = [status]
+
+        if 'retry_count' in filters and filters['retry_count'] is not None:
+            query += " AND retries = ?"
+            params.append(filters['retry_count'])
+
+        if 'extractor' in filters and filters['extractor']:
+            query += " AND extractor = ?"
+            params.append(filters['extractor'])
+
+        # Validate sort field
+        valid_sort_fields = ['timestamp_requested', 'retries', 'url', 'id',
+                             'timestamp_downloaded', 'extractor']
+        if sort_by not in valid_sort_fields:
+            sort_by = 'timestamp_requested'
+
+        # Validate order
+        if order.upper() not in ['ASC', 'DESC']:
+            order = 'DESC'
+
+        query += f" ORDER BY {sort_by} {order.upper()}"
+
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        conn.close()
+
+        # Convert to list of dictionaries
+        return [dict(row) for row in rows]
+
+    def get_downloads_missing_files(self):
+        """Get downloaded items where the file no longer exists.
+
+        Returns:
+            list: List of download records with missing files.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT * FROM downloads 
+            WHERE status = ? AND final_filename IS NOT NULL
+        """, (DownloadStatus.DOWNLOADED.value,))
+
+        rows = cur.fetchall()
+        conn.close()
+
+        missing_files = []
+        for row in rows:
+            if not os.path.exists(row['final_filename']):
+                missing_files.append(dict(row))
+
+        return missing_files
+
+    def remove_downloads_by_status(self, status, older_than_days=None, dry_run=False):
+        """Remove downloads by status with optional age filter.
+
+        Args:
+            status (str): Status of downloads to remove.
+            older_than_days (int, optional): Only remove items older than this many days.
+            dry_run (bool): If True, return count without removing.
+
+        Returns:
+            int: Number of items that would be/were removed.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        query = "SELECT COUNT(*) FROM downloads WHERE status = ?"
+        params = [status]
+
+        if older_than_days:
+            cutoff_date = (datetime.datetime.now() -
+                           datetime.timedelta(days=older_than_days)).isoformat()
+            query += " AND timestamp_requested < ?"
+            params.append(cutoff_date)
+
+        cur.execute(query, params)
+        count = cur.fetchone()[0]
+
+        if not dry_run and count > 0:
+            delete_query = query.replace("SELECT COUNT(*)", "DELETE")
+            cur.execute(delete_query, params)
+            conn.commit()
+
+        conn.close()
+        return count
+
+    def remove_downloads_by_ids(self, download_ids, dry_run=False):
+        """Remove downloads by their database IDs.
+
+        Args:
+            download_ids (list): List of database IDs to remove.
+            dry_run (bool): If True, return count without removing.
+
+        Returns:
+            int: Number of items that would be/were removed.
+        """
+        if not download_ids:
+            return 0
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        placeholders = ','.join('?' * len(download_ids))
+        query = f"SELECT COUNT(*) FROM downloads WHERE id IN ({placeholders})"
+
+        cur.execute(query, download_ids)
+        count = cur.fetchone()[0]
+
+        if not dry_run and count > 0:
+            delete_query = f"DELETE FROM downloads WHERE id IN ({placeholders})"
+            cur.execute(delete_query, download_ids)
+            conn.commit()
+
+        conn.close()
+        return count
+
+    def remove_downloads_by_url_pattern(self, url_pattern, dry_run=False):
+        """Remove downloads by URL pattern matching.
+
+        Args:
+            url_pattern (str): URL pattern to match (supports LIKE syntax).
+            dry_run (bool): If True, return count without removing.
+
+        Returns:
+            int: Number of items that would be/were removed.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        query = "SELECT COUNT(*) FROM downloads WHERE url LIKE ?"
+        cur.execute(query, [f"%{url_pattern}%"])
+        count = cur.fetchone()[0]
+
+        if not dry_run and count > 0:
+            delete_query = "DELETE FROM downloads WHERE url LIKE ?"
+            cur.execute(delete_query, [f"%{url_pattern}%"])
+            conn.commit()
+
+        conn.close()
+        return count
+
+    def reset_downloads_to_pending(self, download_ids, reset_retries=True):
+        """Reset downloads back to pending status.
+
+        Args:
+            download_ids (list): List of database IDs to reset.
+            reset_retries (bool): Whether to reset retry count to 0.
+
+        Returns:
+            int: Number of downloads reset.
+        """
+        if not download_ids:
+            return 0
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        placeholders = ','.join('?' * len(download_ids))
+
+        if reset_retries:
+            query = f"""
+                UPDATE downloads 
+                SET status = ?, retries = 0,
+                    timestamp_downloaded = NULL, final_filename = NULL
+                WHERE id IN ({placeholders})
+            """
+            params = [DownloadStatus.PENDING.value] + download_ids
+        else:
+            query = f"""
+                UPDATE downloads 
+                SET status = ?, timestamp_downloaded = NULL, final_filename = NULL
+                WHERE id IN ({placeholders})
+            """
+            params = [DownloadStatus.PENDING.value] + download_ids
+
+        cur.execute(query, params)
+        updated = cur.rowcount
+        conn.commit()
+        conn.close()
+        return updated
+
+    def find_downloads_by_url_pattern(self, url_pattern):
+        """Find downloads matching a URL pattern.
+
+        Args:
+            url_pattern (str): URL pattern to search for.
+
+        Returns:
+            list: List of matching download records.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM downloads WHERE url LIKE ?", [f"%{url_pattern}%"])
+        rows = cur.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]
+
+    def cleanup_database(self, dry_run=False):
+        """Perform database maintenance operations.
+
+        Args:
+            dry_run (bool): If True, return statistics without making changes.
+
+        Returns:
+            dict: Statistics about cleanup operations.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        stats = {
+            'orphaned_records': 0,
+            'space_saved_kb': 0,
+            'vacuum_performed': False
+        }
+
+        # Check for orphaned records (basic integrity check)
+        cur.execute("SELECT COUNT(*) FROM downloads WHERE url IS NULL OR url = ''")
+        orphaned_count = cur.fetchone()[0]
+        stats['orphaned_records'] = orphaned_count
+
+        if not dry_run:
+            # Remove orphaned records
+            if orphaned_count > 0:
+                cur.execute("DELETE FROM downloads WHERE url IS NULL OR url = ''")
+                conn.commit()
+
+            # Get database size before vacuum
+            cur.execute("PRAGMA page_count")
+            pages_before = cur.fetchone()[0]
+            cur.execute("PRAGMA page_size")
+            page_size = cur.fetchone()[0]
+            size_before = pages_before * page_size
+
+            # Vacuum database
+            cur.execute("VACUUM")
+
+            # Get database size after vacuum
+            cur.execute("PRAGMA page_count")
+            pages_after = cur.fetchone()[0]
+            size_after = pages_after * page_size
+
+            stats['space_saved_kb'] = (size_before - size_after) // 1024
+            stats['vacuum_performed'] = True
+
+        conn.close()
+        return stats
+
+    def export_data(self, output_format='json', status_filter=None):
+        """Export queue data for backup or analysis.
+
+        Args:
+            output_format (str): Export format ('json' or 'csv').
+            status_filter (str, optional): Only export downloads with this status.
+
+        Returns:
+            str: Formatted data string.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        if status_filter:
+            cur.execute("SELECT * FROM downloads WHERE status = ? ORDER BY id",
+                        [status_filter])
+        else:
+            cur.execute("SELECT * FROM downloads ORDER BY id")
+
+        rows = cur.fetchall()
+        conn.close()
+
+        data = [dict(row) for row in rows]
+
+        if output_format.lower() == 'json':
+            return json.dumps(data, indent=2, default=str)
+
+        if output_format.lower() == 'csv':
+            if not data:
+                return ""
+
+            output = io.StringIO()
+            writer = csv.DictWriter(output, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+            return output.getvalue()
+
+        raise ValueError("output_format must be 'json' or 'csv'")
+
+    def get_storage_usage_summary(self):
+        """Get storage usage summary for downloaded files.
+
+        Returns:
+            dict: Storage statistics.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT final_filename FROM downloads 
+            WHERE status = ? AND final_filename IS NOT NULL
+        """, (DownloadStatus.DOWNLOADED.value,))
+
+        rows = cur.fetchall()
+        conn.close()
+
+        total_size = 0
+        files_found = 0
+        files_missing = 0
+
+        for row in rows:
+            filename = row['final_filename']
+            if os.path.exists(filename):
+                try:
+                    total_size += os.path.getsize(filename)
+                    files_found += 1
+                except OSError:
+                    files_missing += 1
+            else:
+                files_missing += 1
+
+        return {
+            'total_size_bytes': total_size,
+            'total_size_mb': total_size / (1024 * 1024),
+            'files_found': files_found,
+            'files_missing': files_missing,
+            'total_files': files_found + files_missing
+        }

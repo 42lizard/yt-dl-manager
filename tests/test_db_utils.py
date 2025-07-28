@@ -283,6 +283,193 @@ class TestDatabaseUtils(unittest.TestCase):
         self.assertEqual(status['downloaded'], 1)
         self.assertEqual(status['failed'], 1)
 
+    def test_get_downloads_by_status(self):
+        """Test get_downloads_by_status method."""
+        # Add test data with different statuses
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        self.db_utils.add_url("https://example.com/video3")
+        
+        # Mark one as failed
+        self.db_utils.mark_failed(1)
+        
+        # Test getting pending downloads
+        pending = self.db_utils.get_downloads_by_status('pending')
+        self.assertEqual(len(pending), 2)
+        
+        # Test getting failed downloads
+        failed = self.db_utils.get_downloads_by_status('failed')
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0]['id'], 1)
+
+    def test_get_downloads_by_status_with_filters(self):
+        """Test get_downloads_by_status with filters."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        
+        # Increment retries for one
+        self.db_utils.increment_retries(1)
+        
+        # Test filter by retry count
+        downloads = self.db_utils.get_downloads_by_status('pending', retry_count=1)
+        self.assertEqual(len(downloads), 1)
+        self.assertEqual(downloads[0]['id'], 1)
+
+    def test_get_downloads_missing_files(self):
+        """Test get_downloads_missing_files method."""
+        # Add and mark as downloaded with non-existent file
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.mark_downloaded(1, "/nonexistent/file.mp4", "youtube")
+        
+        missing = self.db_utils.get_downloads_missing_files()
+        self.assertEqual(len(missing), 1)
+        self.assertEqual(missing[0]['id'], 1)
+
+    def test_remove_downloads_by_status(self):
+        """Test remove_downloads_by_status method."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        
+        # Mark as failed
+        self.db_utils.mark_failed(1)
+        self.db_utils.mark_failed(2)
+        
+        # Test dry run
+        count = self.db_utils.remove_downloads_by_status('failed', dry_run=True)
+        self.assertEqual(count, 2)
+        
+        # Verify nothing was removed
+        remaining = self.db_utils.get_downloads_by_status('failed')
+        self.assertEqual(len(remaining), 2)
+        
+        # Test actual removal
+        count = self.db_utils.remove_downloads_by_status('failed', dry_run=False)
+        self.assertEqual(count, 2)
+        
+        # Verify items were removed
+        remaining = self.db_utils.get_downloads_by_status('failed')
+        self.assertEqual(len(remaining), 0)
+
+    def test_remove_downloads_by_ids(self):
+        """Test remove_downloads_by_ids method."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        self.db_utils.add_url("https://example.com/video3")
+        
+        # Test removal
+        count = self.db_utils.remove_downloads_by_ids([1, 3])
+        self.assertEqual(count, 2)
+        
+        # Verify correct items were removed
+        remaining = self.db_utils.get_downloads_by_status('pending')
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0]['id'], 2)
+
+    def test_remove_downloads_by_url_pattern(self):
+        """Test remove_downloads_by_url_pattern method."""
+        # Add test data
+        self.db_utils.add_url("https://youtube.com/watch?v=abc")
+        self.db_utils.add_url("https://vimeo.com/123456")
+        self.db_utils.add_url("https://youtube.com/watch?v=xyz")
+        
+        # Test removal by pattern
+        count = self.db_utils.remove_downloads_by_url_pattern("youtube.com")
+        self.assertEqual(count, 2)
+        
+        # Verify correct items were removed
+        remaining = self.db_utils.get_downloads_by_status('pending')
+        self.assertEqual(len(remaining), 1)
+        self.assertIn('vimeo.com', remaining[0]['url'])
+
+    def test_reset_downloads_to_pending(self):
+        """Test reset_downloads_to_pending method."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.add_url("https://example.com/video2")
+        
+        # Mark as failed and downloaded
+        self.db_utils.mark_failed(1)
+        self.db_utils.mark_downloaded(2, "/some/file.mp4", "youtube")
+        
+        # Reset to pending
+        count = self.db_utils.reset_downloads_to_pending([1, 2])
+        self.assertEqual(count, 2)
+        
+        # Verify status reset
+        pending = self.db_utils.get_downloads_by_status('pending')
+        self.assertEqual(len(pending), 2)
+
+    def test_find_downloads_by_url_pattern(self):
+        """Test find_downloads_by_url_pattern method."""
+        # Add test data
+        self.db_utils.add_url("https://youtube.com/watch?v=abc")
+        self.db_utils.add_url("https://vimeo.com/123456")
+        
+        # Test finding by pattern
+        matches = self.db_utils.find_downloads_by_url_pattern("youtube")
+        self.assertEqual(len(matches), 1)
+        self.assertIn('youtube', matches[0]['url'])
+
+    def test_cleanup_database(self):
+        """Test cleanup_database method."""
+        # Test dry run
+        stats = self.db_utils.cleanup_database(dry_run=True)
+        self.assertIn('orphaned_records', stats)
+        self.assertIn('space_saved_kb', stats)
+        self.assertIn('vacuum_performed', stats)
+        
+        # Test actual cleanup
+        stats = self.db_utils.cleanup_database(dry_run=False)
+        self.assertTrue(stats['vacuum_performed'])
+
+    def test_export_data_json(self):
+        """Test export_data method with JSON format."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        
+        result = self.db_utils.export_data('json')
+        import json
+        data = json.loads(result)
+        
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['url'], "https://example.com/video1")
+
+    def test_export_data_csv(self):
+        """Test export_data method with CSV format."""
+        # Add test data
+        self.db_utils.add_url("https://example.com/video1")
+        
+        result = self.db_utils.export_data('csv')
+        
+        self.assertIn('id,url,status', result)
+        self.assertIn('https://example.com/video1', result)
+
+    def test_export_data_empty(self):
+        """Test export_data method with no data."""
+        result = self.db_utils.export_data('csv')
+        self.assertEqual(result, "")
+
+    def test_export_data_invalid_format(self):
+        """Test export_data method with invalid format."""
+        with self.assertRaises(ValueError):
+            self.db_utils.export_data('xml')
+
+    def test_get_storage_usage_summary(self):
+        """Test get_storage_usage_summary method."""
+        # Add and mark as downloaded with non-existent file
+        self.db_utils.add_url("https://example.com/video1")
+        self.db_utils.mark_downloaded(1, "/nonexistent/file.mp4", "youtube")
+        
+        stats = self.db_utils.get_storage_usage_summary()
+        
+        self.assertEqual(stats['total_files'], 1)
+        self.assertEqual(stats['files_missing'], 1)
+        self.assertEqual(stats['files_found'], 0)
+        self.assertEqual(stats['total_size_bytes'], 0)
+
 
 class TestEnsureDatabaseSchemaBackwardCompatibility(unittest.TestCase):
     """Test cases for backward compatibility function."""
