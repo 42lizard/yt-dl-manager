@@ -45,69 +45,85 @@ def setup_argument_parser():
 def _setup_maintenance_commands(subparsers):
     """Set up maintenance-related subcommands."""
     # list command
-    list_parser = subparsers.add_parser("list", help="List downloads by status.")
+    list_parser = subparsers.add_parser(
+        "list", help="List downloads by status.")
     list_subparsers = list_parser.add_subparsers(dest="list_type")
 
     # list pending
-    pending_parser = list_subparsers.add_parser("pending", help="List pending downloads.")
-    pending_parser.add_argument("--limit", type=int, help="Maximum number of results.")
+    pending_parser = list_subparsers.add_parser(
+        "pending", help="List pending downloads.")
+    pending_parser.add_argument(
+        "--limit", type=int, help="Maximum number of results.")
     pending_parser.add_argument("--sort-by", choices=['date', 'retries', 'url'],
                                 default='date', help="Sort by field.")
 
     # list failed
-    failed_parser = list_subparsers.add_parser("failed", help="List failed downloads.")
-    failed_parser.add_argument("--limit", type=int, help="Maximum number of results.")
-    failed_parser.add_argument("--retry-count", type=int, help="Filter by retry count.")
+    failed_parser = list_subparsers.add_parser(
+        "failed", help="List failed downloads.")
+    failed_parser.add_argument(
+        "--limit", type=int, help="Maximum number of results.")
+    failed_parser.add_argument(
+        "--retry-count", type=int, help="Filter by retry count.")
 
     # list downloaded
-    downloaded_parser = list_subparsers.add_parser("downloaded", help="List downloaded items.")
-    downloaded_parser.add_argument("--limit", type=int, help="Maximum number of results.")
+    downloaded_parser = list_subparsers.add_parser(
+        "downloaded", help="List downloaded items.")
+    downloaded_parser.add_argument(
+        "--limit", type=int, help="Maximum number of results.")
     downloaded_parser.add_argument("--missing-files", action="store_true",
                                    help="Only show items with missing files.")
-    downloaded_parser.add_argument("--extractor", help="Filter by extractor type.")
+    downloaded_parser.add_argument(
+        "--extractor", help="Filter by extractor type.")
 
     # status command
     subparsers.add_parser("status", help="Show queue status dashboard.")
 
     # remove command
-    remove_parser = subparsers.add_parser("remove", help="Remove items from queue.")
+    remove_parser = subparsers.add_parser(
+        "remove", help="Remove items from queue.")
     remove_subparsers = remove_parser.add_subparsers(dest="remove_type")
 
     # remove failed
-    remove_failed_parser = remove_subparsers.add_parser("failed", help="Remove failed downloads.")
+    remove_failed_parser = remove_subparsers.add_parser(
+        "failed", help="Remove failed downloads.")
     remove_failed_parser.add_argument("--older-than", type=int, metavar="DAYS",
                                       help="Only remove items older than DAYS.")
     remove_failed_parser.add_argument("--dry-run", action="store_true",
                                       help="Preview what would be removed.")
 
     # remove by ID or URL
-    remove_items_parser = remove_subparsers.add_parser("items", help="Remove specific items.")
+    remove_items_parser = remove_subparsers.add_parser(
+        "items", help="Remove specific items.")
     remove_items_parser.add_argument("targets", nargs="+",
                                      help="Database IDs or URL patterns to remove.")
     remove_items_parser.add_argument("--dry-run", action="store_true",
                                      help="Preview what would be removed.")
 
     # retry command
-    retry_parser = subparsers.add_parser("retry", help="Retry failed or completed downloads.")
+    retry_parser = subparsers.add_parser(
+        "retry", help="Retry failed or completed downloads.")
     retry_parser.add_argument("targets", nargs="*",
                               help="Database IDs or URL patterns to retry.")
     retry_parser.add_argument("--failed", action="store_true",
                               help="Retry all failed downloads.")
 
     # verify command
-    verify_parser = subparsers.add_parser("verify", help="Verify downloaded files exist.")
+    verify_parser = subparsers.add_parser(
+        "verify", help="Verify downloaded files exist.")
     verify_parser.add_argument("--fix", action="store_true",
                                help="Automatically mark missing files for redownload.")
     verify_parser.add_argument("--delete-records", action="store_true",
                                help="Remove database entries for missing files.")
 
     # redownload command
-    redownload_parser = subparsers.add_parser("redownload", help="Mark items for redownload.")
+    redownload_parser = subparsers.add_parser(
+        "redownload", help="Mark items for redownload.")
     redownload_parser.add_argument("targets", nargs="+",
                                    help="Database IDs or URL patterns to redownload.")
 
     # cleanup command
-    cleanup_parser = subparsers.add_parser("cleanup", help="Perform database maintenance.")
+    cleanup_parser = subparsers.add_parser(
+        "cleanup", help="Perform database maintenance.")
     cleanup_parser.add_argument("--dry-run", action="store_true",
                                 help="Preview cleanup actions.")
 
@@ -228,6 +244,63 @@ def handle_status_command():
     maintenance.show_status()
 
 
+def _confirm_removal(prompt_message):
+    """Ask user for confirmation to proceed with removal.
+
+    Args:
+        prompt_message (str): The confirmation prompt to show
+
+    Returns:
+        bool: True if user confirms, False otherwise
+    """
+    response = input(prompt_message)
+    return response.lower() == 'y'
+
+
+def _handle_remove_failed(maintenance, args):
+    """Handle removal of failed downloads."""
+    if not args.dry_run:
+        count = maintenance.remove_failed(
+            older_than_days=args.older_than, dry_run=True)
+        if count > 0:
+            prompt = f"Are you sure you want to remove {count} failed downloads? (y/N): "
+            if not _confirm_removal(prompt):
+                print("Operation cancelled.")
+                return
+
+    maintenance.remove_failed(
+        older_than_days=args.older_than, dry_run=args.dry_run)
+
+
+def _handle_remove_by_ids(maintenance, numeric_ids, dry_run):
+    """Handle removal of items by IDs."""
+    if not dry_run:
+        prompt = f"Are you sure you want to remove {len(numeric_ids)} items by ID? (y/N): "
+        if not _confirm_removal(prompt):
+            print("Operation cancelled.")
+            return
+    maintenance.remove_by_ids(numeric_ids, dry_run=dry_run)
+
+
+def _handle_remove_by_pattern(maintenance, pattern, dry_run):
+    """Handle removal of items by URL pattern."""
+    if not dry_run:
+        matching = maintenance.find_downloads_by_url(pattern)
+        if matching:
+            print(f"Found {len(matching)} downloads matching '{pattern}':")
+            for item in matching[:5]:  # Show first 5
+                print(f"  ID {item['id']}: {item['url'][:60]}...")
+            if len(matching) > 5:
+                print(f"  ... and {len(matching) - 5} more")
+
+            prompt = f"Remove these {len(matching)} downloads? (y/N): "
+            if not _confirm_removal(prompt):
+                print("Skipping URL pattern:", pattern)
+                return
+
+    maintenance.remove_by_url_pattern(pattern, dry_run=dry_run)
+
+
 def handle_remove_command(args):
     """Handle remove subcommands."""
     if not args.remove_type:
@@ -237,47 +310,16 @@ def handle_remove_command(args):
     maintenance = MaintenanceCommands()
 
     if args.remove_type == "failed":
-        if not args.dry_run:
-            # Confirmation prompt for safety
-            count = maintenance.remove_failed(older_than_days=args.older_than, dry_run=True)
-            if count > 0:
-                prompt = f"Are you sure you want to remove {count} failed downloads? (y/N): "
-                response = input(prompt)
-                if response.lower() != 'y':
-                    print("Operation cancelled.")
-                    return
-
-        maintenance.remove_failed(older_than_days=args.older_than, dry_run=args.dry_run)
-
+        _handle_remove_failed(maintenance, args)
     elif args.remove_type == "items":
         # Parse targets as IDs or URL patterns
         numeric_ids, url_patterns = _parse_targets(args.targets)
 
         if numeric_ids:
-            if not args.dry_run:
-                prompt = f"Are you sure you want to remove {len(numeric_ids)} items by ID? (y/N): "
-                response = input(prompt)
-                if response.lower() != 'y':
-                    print("Operation cancelled.")
-                    return
-            maintenance.remove_by_ids(numeric_ids, dry_run=args.dry_run)
+            _handle_remove_by_ids(maintenance, numeric_ids, args.dry_run)
 
         for pattern in url_patterns:
-            if not args.dry_run:
-                matching = maintenance.find_downloads_by_url(pattern)
-                if matching:
-                    print(f"Found {len(matching)} downloads matching '{pattern}':")
-                    for item in matching[:5]:  # Show first 5
-                        print(f"  ID {item['id']}: {item['url'][:60]}...")
-                    if len(matching) > 5:
-                        print(f"  ... and {len(matching) - 5} more")
-
-                    response = input(f"Remove these {len(matching)} downloads? (y/N): ")
-                    if response.lower() != 'y':
-                        print("Skipping URL pattern:", pattern)
-                        continue
-
-            maintenance.remove_by_url_pattern(pattern, dry_run=args.dry_run)
+            _handle_remove_by_pattern(maintenance, pattern, args.dry_run)
 
 
 def handle_retry_command(args):
@@ -297,7 +339,8 @@ def handle_retry_command(args):
             matching = maintenance.find_downloads_by_url(pattern)
             pattern_ids = [item['id'] for item in matching]
             all_ids.extend(pattern_ids)
-            print(f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
+            print(
+                f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
 
         if all_ids:
             maintenance.retry_downloads(download_ids=all_ids)
@@ -311,7 +354,8 @@ def handle_retry_command(args):
 def handle_verify_command(args):
     """Handle verify command."""
     maintenance = MaintenanceCommands()
-    maintenance.verify_files(fix_missing=args.fix, delete_records=args.delete_records)
+    maintenance.verify_files(fix_missing=args.fix,
+                             delete_records=args.delete_records)
 
 
 def handle_redownload_command(args):
@@ -328,7 +372,8 @@ def handle_redownload_command(args):
         matching = maintenance.find_downloads_by_url(pattern)
         pattern_ids = [item['id'] for item in matching]
         all_ids.extend(pattern_ids)
-        print(f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
+        print(
+            f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
 
     if all_ids:
         maintenance.redownload_items(all_ids)
@@ -341,7 +386,8 @@ def handle_cleanup_command(args):
     maintenance = MaintenanceCommands()
 
     if not args.dry_run:
-        response = input("Are you sure you want to perform database cleanup? (y/N): ")
+        response = input(
+            "Are you sure you want to perform database cleanup? (y/N): ")
         if response.lower() != 'y':
             print("Operation cancelled.")
             return

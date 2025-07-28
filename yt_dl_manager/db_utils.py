@@ -82,9 +82,9 @@ class DatabaseUtils:
             db_path (str, optional): Path to the SQLite database file. Defaults to None.
         """
         self.db_path = db_path if db_path else config['DEFAULT']['database_path']
-        self.ensure_schema()
+        self._ensure_schema()
 
-    def ensure_schema(self):
+    def _ensure_schema(self):
         """Create or verify the downloads table schema.
         Raises:
             sqlite3.OperationalError: If database connection fails during setup.
@@ -500,7 +500,8 @@ class DatabaseUtils:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        cur.execute("SELECT * FROM downloads WHERE url LIKE ?", [f"%{url_pattern}%"])
+        cur.execute("SELECT * FROM downloads WHERE url LIKE ?",
+                    [f"%{url_pattern}%"])
         rows = cur.fetchall()
         conn.close()
 
@@ -525,14 +526,16 @@ class DatabaseUtils:
         }
 
         # Check for orphaned records (basic integrity check)
-        cur.execute("SELECT COUNT(*) FROM downloads WHERE url IS NULL OR url = ''")
+        cur.execute(
+            "SELECT COUNT(*) FROM downloads WHERE url IS NULL OR url = ''")
         orphaned_count = cur.fetchone()[0]
         stats['orphaned_records'] = orphaned_count
 
         if not dry_run:
             # Remove orphaned records
             if orphaned_count > 0:
-                cur.execute("DELETE FROM downloads WHERE url IS NULL OR url = ''")
+                cur.execute(
+                    "DELETE FROM downloads WHERE url IS NULL OR url = ''")
                 conn.commit()
 
             # Get database size before vacuum
