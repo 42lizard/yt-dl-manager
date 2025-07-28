@@ -31,7 +31,10 @@ class TestAddToQueue(unittest.TestCase):
         # Create a temporary config file
         temp_config_fd, temp_config_path = tempfile.mkstemp()
         os.close(temp_config_fd)
-        config_content = f"[yt-dl-manager]\ndb_path={test_db_path}\n"
+        config_content = (
+            f"[DEFAULT]\nTARGET_FOLDER=/tmp/downloads\n"
+            f"[yt-dl-manager]\ndb_path={test_db_path}\n"
+        )
         pathlib.Path(temp_config_path).write_text(
             config_content, encoding='utf-8')
         with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
