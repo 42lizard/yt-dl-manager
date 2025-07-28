@@ -6,7 +6,7 @@ import sqlite3
 import tempfile
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
 import io
@@ -37,43 +37,48 @@ class TestAddToQueue(unittest.TestCase):
                 'database_path': test_db_path
             }
 
-            # Patch the config object used by download_utils
+            # Create a mock for the config path that always exists
+            mock_config_path = MagicMock()
+            mock_config_path.exists.return_value = True
+
+            # Patch the config object used by download_utils and the config path check
             with patch('yt_dl_manager.download_utils.config', test_config):
-                with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-                    # Create a real queue instance for the test
-                    test_queue = Queue(db_path=test_db_path)
-                    mock_queue_class.return_value = test_queue
+                with patch('yt_dl_manager.add_to_queue.get_config_path', return_value=mock_config_path):
+                    with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
+                        # Create a real queue instance for the test
+                        test_queue = Queue(db_path=test_db_path)
+                        mock_queue_class.return_value = test_queue
 
-                    with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
-                        # Set up YoutubeDL mock
-                        mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
-                            'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
-                        }
-                        mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
-                            '/tmp/test_downloads/youtube/Test Video.mp4')
+                        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
+                            # Set up YoutubeDL mock
+                            mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
+                                'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
+                            }
+                            mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
+                                '/tmp/test_downloads/youtube/Test Video.mp4')
 
-                        # Mock args
-                        class Args:
-                            """Simple args container for CLI simulation in tests."""
-                            url = test_url
-                            download = True
+                            # Mock args
+                            class Args:
+                                """Simple args container for CLI simulation in tests."""
+                                url = test_url
+                                download = True
 
-                        # Capture output
-                        captured_out = io.StringIO()
-                        sys_stdout = sys.stdout
-                        sys.stdout = captured_out
-                        try:
-                            add_to_queue.main(Args())
-                        finally:
-                            sys.stdout = sys_stdout
+                            # Capture output
+                            captured_out = io.StringIO()
+                            sys_stdout = sys.stdout
+                            sys.stdout = captured_out
+                            try:
+                                add_to_queue.main(Args())
+                            finally:
+                                sys.stdout = sys_stdout
 
-                        # Verify output
-                        output = captured_out.getvalue()
-                        self.assertIn("URL added to queue", output)
-                        self.assertIn("Downloaded:", output)
+                            # Verify output
+                            output = captured_out.getvalue()
+                            self.assertIn("URL added to queue", output)
+                            self.assertIn("Downloaded:", output)
 
-                        # Verify YoutubeDL was called
-                        mock_ydl.assert_called()
+                            # Verify YoutubeDL was called
+                            mock_ydl.assert_called()
 
         finally:
             # Clean up temporary files
