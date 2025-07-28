@@ -58,6 +58,17 @@ CREATE TABLE IF NOT EXISTS downloads (
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
 
+    def _build_in_clause_placeholders(self, count):
+        """Build a safe IN clause with the specified number of placeholders.
+        
+        Args:
+            count (int): Number of placeholders needed.
+            
+        Returns:
+            str: Safe placeholder string like "?,?,?"
+        """
+        return ','.join('?' * count)
+
     def claim_pending_for_download(self, row_id):
         """Atomically claim a pending download for processing.
         Sets status to 'downloading' only if current status is 'pending'.
@@ -310,17 +321,22 @@ class DatabaseUtils:
             query += " AND extractor = ?"
             params.append(filters['extractor'])
 
-        # Validate sort field
-        valid_sort_fields = ['timestamp_requested', 'retries', 'url', 'id',
-                             'timestamp_downloaded', 'extractor']
-        if sort_by not in valid_sort_fields:
-            sort_by = 'timestamp_requested'
+        # Validate sort field using safe mapping
+        valid_sort_fields = {
+            'timestamp_requested': 'timestamp_requested',
+            'retries': 'retries',
+            'url': 'url',
+            'id': 'id',
+            'timestamp_downloaded': 'timestamp_downloaded',
+            'extractor': 'extractor'
+        }
+        safe_sort_by = valid_sort_fields.get(sort_by, 'timestamp_requested')
 
-        # Validate order
-        if order.upper() not in ['ASC', 'DESC']:
-            order = 'DESC'
+        # Validate order using safe mapping
+        valid_orders = {'ASC': 'ASC', 'DESC': 'DESC'}
+        safe_order = valid_orders.get(order.upper(), 'DESC')
 
-        query += f" ORDER BY {sort_by} {order.upper()}"
+        query += f" ORDER BY {safe_sort_by} {safe_order}"
 
         if limit:
             query += " LIMIT ?"
@@ -408,14 +424,16 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
 
-        placeholders = ','.join('?' * len(download_ids))
-        query = f"SELECT COUNT(*) FROM downloads WHERE id IN ({placeholders})"
+        placeholders = self._build_in_clause_placeholders(len(download_ids))
+
+        # Use string concatenation instead of f-string for SQL
+        query = "SELECT COUNT(*) FROM downloads WHERE id IN (" + placeholders + ")"
 
         cur.execute(query, download_ids)
         count = cur.fetchone()[0]
 
         if not dry_run and count > 0:
-            delete_query = f"DELETE FROM downloads WHERE id IN ({placeholders})"
+            delete_query = "DELETE FROM downloads WHERE id IN (" + placeholders + ")"
             cur.execute(delete_query, download_ids)
             conn.commit()
 
@@ -463,22 +481,18 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
 
-        placeholders = ','.join('?' * len(download_ids))
+        placeholders = self._build_in_clause_placeholders(len(download_ids))
 
         if reset_retries:
-            query = f"""
-                UPDATE downloads 
-                SET status = ?, retries = 0,
-                    timestamp_downloaded = NULL, final_filename = NULL
-                WHERE id IN ({placeholders})
-            """
+            query = ("UPDATE downloads "
+                    "SET status = ?, retries = 0, "
+                    "timestamp_downloaded = NULL, final_filename = NULL "
+                    "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
         else:
-            query = f"""
-                UPDATE downloads 
-                SET status = ?, timestamp_downloaded = NULL, final_filename = NULL
-                WHERE id IN ({placeholders})
-            """
+            query = ("UPDATE downloads "
+                    "SET status = ?, timestamp_downloaded = NULL, final_filename = NULL "
+                    "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
 
         cur.execute(query, params)
