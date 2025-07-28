@@ -1,9 +1,12 @@
 """yt-dl-manager daemon: manages yt-dlp downloads from an SQLite queue."""
 
+import logging
 import time
 from .queue import Queue
 from .config import get_config_path
 from .download_utils import download_media
+
+logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = 10  # seconds
 MAX_RETRIES = 3
@@ -44,26 +47,34 @@ class YTDLManagerDaemon:
 
     def run(self):
         """Main loop for polling and processing downloads."""
-        print('Daemon started. Polling for pending downloads...')
+        startup_msg = 'Daemon started. Polling for pending downloads...'
+        logger.info(startup_msg)
+        print(startup_msg)  # Print for daemon visibility
         try:
             while self.running:
                 pending = self.poll_pending()
                 if pending:
-                    print(f'Found {len(pending)} pending downloads.')
+                    pending_msg = f'Found {len(pending)} pending downloads.'
+                    logger.info(pending_msg)
+                    print(pending_msg)  # Print for daemon visibility
                     for row_id, url, retries in pending:
                         self.download_media(row_id, url, retries)
                 else:
-                    print('No pending downloads.')
+                    no_pending_msg = 'No pending downloads.'
+                    logger.debug(no_pending_msg)
+                    print(no_pending_msg)  # Print for daemon visibility
                 time.sleep(POLL_INTERVAL)
         except KeyboardInterrupt:
-            print('Daemon stopped.')
+            shutdown_msg = 'Daemon stopped.'
+            logger.info(shutdown_msg)
+            print(shutdown_msg)  # Print for daemon visibility
 
 
 def main():
     """Main function for the daemon."""
     config_file_path = get_config_path()
     if not config_file_path.exists():
-        print("Config file not found. Please run 'yt-dl-manager init' to create one.")
+        logger.error("Config file not found. Please run 'yt-dl-manager init' to create one.")
         return
     daemon = YTDLManagerDaemon()
     daemon.run()

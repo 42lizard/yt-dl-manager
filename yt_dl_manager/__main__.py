@@ -1,7 +1,9 @@
 """This module provides a CLI for yt-dl-manager."""
 
 import argparse
+import os
 
+from .logging_config import setup_logging
 from .create_config import create_default_config
 from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
@@ -9,6 +11,10 @@ from .add_to_queue import main as add_to_queue_main
 
 def main():
     """Main function for the CLI."""
+    # Set up logging
+    log_level = getattr(__import__('logging'), os.getenv('YT_DL_MANAGER_LOG_LEVEL', 'INFO').upper())
+    setup_logging(log_level)
+
     parser = argparse.ArgumentParser(
         description="yt-dl-manager: A tool for managing youtube-dl downloads."
     )
