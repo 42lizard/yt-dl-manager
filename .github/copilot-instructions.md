@@ -14,3 +14,11 @@ Instructions for copilot
 * keep docs streamlined and not overwhelming
 * do not break the markdown formatting in plan.md and readme.md
 * no automatic staging and commiting to the main branch.
+* must be compatible with python 3.8,3.9,3.10,3.11
+* if you cd into a directory, always cd back to the original directory after the task is done
+* always follow the instructions above.
+* Using f-string with direct string interpolation in SQL queries can lead to SQL injection vulnerabilities. Use parameterized queries instead.
+* always double check the code for security issues, especially when dealing with user input or database queries.
+* If you are working with Python code respect the pylint rules defined in the .pylintrc files (check the root of the project for the .pylintrc file and the subfolder the edited file resides).
+* pep8 is the standard for Python code style, so you should always follow it.
+* run autopep8 on the files you edit to ensure they are formatted correctly.

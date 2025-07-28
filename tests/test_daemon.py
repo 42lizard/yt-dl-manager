@@ -64,7 +64,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         self.assertEqual(pending, [])
 
     def test_poll_pending_with_items(self):
-        """Test polling with pending downloads."""
+        """Test polling with pending downloads and checks returned data."""
         # Insert test data
         url1 = "https://www.youtube.com/watch?v=test1"
         url2 = "https://www.youtube.com/watch?v=test2"
@@ -114,8 +114,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         conn = sqlite3.connect(self.test_db_path)
         cur = conn.cursor()
         cur.execute(
-            "SELECT status, final_filename, extractor, timestamp_downloaded "
-            "FROM downloads WHERE id = ?",
+            "SELECT status, final_filename, extractor, timestamp_downloaded FROM downloads WHERE id = ?",
             (row_id,)
         )
         row = cur.fetchone()
@@ -160,7 +159,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
 
         self.assertEqual(retries, 2)
 
-    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_success(self, mock_print, mock_ytdl_class):
         """Test successful media download."""
@@ -181,8 +180,8 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Mock config to provide TARGET_FOLDER
-        with patch('yt_dl_manager.daemon.config') as mock_config:
+        # Mock config to provide target_folder
+        with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
             mock_config.__getitem__.return_value = mock_default_section
@@ -214,7 +213,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         # Verify success message was printed
         mock_print.assert_called_with("Downloaded: /path/to/test_video.mp4")
 
-    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_with_retry(self, mock_print, mock_ytdl_class):
         """Test download failure that should be retried."""
@@ -231,8 +230,8 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url)
 
-        # Mock config to provide TARGET_FOLDER
-        with patch('yt_dl_manager.daemon.config') as mock_config:
+        # Mock config to provide target_folder
+        with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
             mock_config.__getitem__.return_value = mock_default_section
@@ -260,14 +259,13 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         )
         mock_print.assert_called_with(expected_message)
 
-    @patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL')
+    @patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL')
     @patch('builtins.print')
     def test_download_media_failure_max_retries(self, mock_print, mock_ytdl_class):
         """Test download failure after max retries."""
         # Setup mocks
         mock_ytdl_instance = MagicMock()
         mock_ytdl_class.return_value.__enter__.return_value = mock_ytdl_instance
-
         # Simulate download error
         mock_ytdl_instance.extract_info.side_effect = (
             yt_dlp.utils.DownloadError("Network error")
@@ -277,8 +275,8 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         row_id = self._insert_test_download(test_url, retries=MAX_RETRIES-1)
 
-        # Mock config to provide TARGET_FOLDER
-        with patch('yt_dl_manager.daemon.config') as mock_config:
+        # Mock config to provide target_folder
+        with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'test_downloads'
             mock_config.__getitem__.return_value = mock_default_section
@@ -375,12 +373,12 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         row_id = self._insert_test_download(test_url)
 
         # Mock config to return custom target folder
-        with patch('yt_dl_manager.daemon.config') as mock_config:
+        with patch('yt_dl_manager.download_utils.config') as mock_config:
             mock_default_section = MagicMock()
             mock_default_section.__getitem__.return_value = 'custom_downloads'
             mock_config.__getitem__.return_value = mock_default_section
 
-            with patch('yt_dl_manager.daemon.yt_dlp.YoutubeDL') as mock_ytdl_class:
+            with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ytdl_class:
                 mock_ytdl_instance = MagicMock()
                 mock_ytdl_class.return_value.__enter__.return_value = (
                     mock_ytdl_instance

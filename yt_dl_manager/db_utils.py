@@ -54,12 +54,30 @@ CREATE TABLE IF NOT EXISTS downloads (
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
 
+    def claim_pending_for_download(self, row_id):
+        """Atomically claim a pending download for processing.
+        Sets status to 'downloading' only if current status is 'pending'.
+        Returns True if claim succeeded, False otherwise.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE downloads SET status = ? "
+            "WHERE id = ? AND status = ?",
+            (DownloadStatus.DOWNLOADING.value,
+             row_id,
+             DownloadStatus.PENDING.value))
+        updated = cur.rowcount
+        conn.commit()
+        conn.close()
+        return updated == 1
+
     def __init__(self, db_path=None):
         """Initialize DatabaseUtils with database path.
         Args:
             db_path (str, optional): Path to the SQLite database file. Defaults to None.
         """
-        self.db_path = db_path if db_path else config['DEFAULT']['DATABASE_PATH']
+        self.db_path = db_path if db_path else config['DEFAULT']['database_path']
         self.ensure_schema()
 
     def ensure_schema(self):
@@ -84,8 +102,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"SELECT id, url, retries FROM downloads \
-              WHERE status = '{DownloadStatus.PENDING.value}'"
+            "SELECT id, url, retries FROM downloads WHERE status = ?",
+            (DownloadStatus.PENDING.value,)
         )
         rows = cur.fetchall()
         conn.close()
@@ -99,8 +117,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADING.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.DOWNLOADING.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -115,10 +133,10 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADED.value}', "
+            "UPDATE downloads SET status = ?, "
             "timestamp_downloaded = datetime('now'), "
             "final_filename = ?, extractor = ? WHERE id = ?",
-            (filename, extractor, row_id)
+            (DownloadStatus.DOWNLOADED.value, filename, extractor, row_id)
         )
         conn.commit()
         conn.close()
@@ -131,8 +149,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.FAILED.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.FAILED.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -157,8 +175,8 @@ class DatabaseUtils:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE downloads SET status = '{DownloadStatus.PENDING.value}' WHERE id = ?",
-            (row_id,)
+            "UPDATE downloads SET status = ? WHERE id = ?",
+            (DownloadStatus.PENDING.value, row_id)
         )
         conn.commit()
         conn.close()
@@ -168,25 +186,32 @@ class DatabaseUtils:
         Args:
             media_url (str): The URL to add to the queue.
         Returns:
-            tuple: (success, message) where success is bool and message is str.
+            tuple: (success, message, row_id) where success is bool,
+            message is str, and row_id is int or None.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         try:
             cur.execute(
-                f"INSERT INTO downloads (url, status, timestamp_requested) "
-                f"VALUES (?, '{DownloadStatus.PENDING.value}', ?)",
-                (media_url, datetime.datetime.now(
-                    datetime.timezone.utc).isoformat())
+                "INSERT INTO downloads (url, status, timestamp_requested) "
+                "VALUES (?, ?, ?)",
+                (
+                    media_url,
+                    DownloadStatus.PENDING.value,
+                    datetime.datetime.now(
+                        datetime.timezone.utc
+                    ).isoformat(),
+                ),
             )
             conn.commit()
-            return True, f"URL added to queue: {media_url}"
+            row_id = cur.lastrowid
+            return True, f"URL added to queue: {media_url}", row_id
         except sqlite3.IntegrityError:
             cur.execute(
-                "SELECT final_filename, status FROM downloads WHERE url = ?", (media_url,))
+                "SELECT id, final_filename, status FROM downloads WHERE url = ?", (media_url,))
             row = cur.fetchone()
             if row:
-                filename, status = row
+                row_id, filename, status = row
                 if filename:
                     message = (
                         f"URL already exists in queue: {media_url}\n"
@@ -194,9 +219,10 @@ class DatabaseUtils:
                     )
                 else:
                     message = f"URL already exists in queue: {media_url}\nStatus: {status}"
-            else:
-                message = f"URL already exists in queue: {media_url}"
-            return False, message
+                return False, message, row_id
+            # Edge case: IntegrityError but no row found - should not normally happen
+            message = f"URL already exists in queue: {media_url}"
+            return False, message, None
         finally:
             conn.close()
 

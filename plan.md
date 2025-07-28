@@ -16,7 +16,9 @@ yt-dl-manager/
 │   ├── queue.py           # Centralized queue management class
 │   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
 │   ├── config.py          # Configuration management with platformdirs
-│   └── create_config.py   # Default configuration creation utility
+│   ├── create_config.py   # Default configuration creation utility
+│   ├── download_utils.py  # Shared download logic with yt-dlp integration
+│   └── logging_config.py  # Centralized logging configuration
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
@@ -37,6 +39,11 @@ python -m yt_dl_manager init [--force]
 
 # Add URLs to download queue
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
+
+# Add and immediately download
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" --download
+# or
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
 
 # Run the download daemon
 python -m yt_dl_manager daemon
@@ -85,7 +92,6 @@ Table: `downloads`
 - [x] **Configuration management improvements with init command**
 
 ### 🔮 Optional Future Enhancements
-- [ ] Error logging to file (currently console only)
 - [ ] Thumbnail download and embedding
 - [ ] Web UI for monitoring downloads
 - [ ] REST API for adding URLs
@@ -107,11 +113,11 @@ pylint yt_dl_manager
 
 ### Test Coverage
 - **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
-- **CLI Tests (8 cases)**: URL addition, duplicate detection, queue management, edge cases
+- **CLI Tests (9 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
 - **Queue Tests (26 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (15 cases)**: Low-level database operations, schema management, data integrity
+- **Database Tests (16 cases)**: Low-level database operations, schema management, data integrity
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **Quality Metrics**: 100% test pass rate (63/63), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (64/64), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.8, 3.9, 3.10, 3.11
@@ -130,8 +136,19 @@ pylint yt_dl_manager
 - `daemon` command for running the download service
 - Centralized entry point via __main__.py for clean architecture
 
+**Production-Quality Logging**: Implemented comprehensive logging system:
+- Centralized logging configuration with file and console handlers
+- Application logs stored in user log directory with rotation
+- Balanced approach: logging for production, print statements for CLI interaction
+- Configurable log levels via environment variables
+
+**Security Hardening**: Fixed all SQL injection vulnerabilities:
+- Replaced f-string interpolation in SQL queries with parameterized queries
+- Comprehensive security audit of database operations
+- Protected against malicious user input in all database interactions
+
 **Enhanced Testing & Quality**: 
-- Expanded test suite to 63 comprehensive tests covering all functionality
+- Expanded test suite to 64 comprehensive tests covering all functionality
 - Updated test mocking strategy for new configuration system compatibility
 - Maintained high code quality with 10/10 pylint score
 - All tests passing with robust CI/CD pipeline

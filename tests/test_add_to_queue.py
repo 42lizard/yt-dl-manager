@@ -1,18 +1,91 @@
 """Unit tests for add_to_queue.py module."""
 
+import configparser
 import os
 import sqlite3
 import tempfile
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
+
+import io
+import sys
 from yt_dl_manager.add_to_queue import AddToQueue
+from yt_dl_manager.queue import Queue
+from yt_dl_manager import add_to_queue
 from tests.test_utils import create_test_schema
 
 
 class TestAddToQueue(unittest.TestCase):
-    """Test cases for AddToQueue class."""
+    """Unit tests for the AddToQueue class and related queue operations."""
+
+    def test_add_url_with_download_flag(self):
+        """Test adding a URL with --download triggers immediate download logic."""
+        test_url = "https://www.youtube.com/watch?v=immediate"
+
+        # Create temporary database
+        test_db_fd, test_db_path = tempfile.mkstemp(suffix='.db')
+        os.close(test_db_fd)
+        create_test_schema(test_db_path)
+
+        try:
+            # Create a test config object
+            test_config = configparser.ConfigParser()
+            test_config['DEFAULT'] = {
+                'target_folder': '/tmp/test_downloads',
+                'database_path': test_db_path
+            }
+
+            # Create a mock for the config path that always exists
+            mock_config_path = MagicMock()
+            mock_config_path.exists.return_value = True
+
+            # Patch the config object used by download_utils and the config path check
+            with patch('yt_dl_manager.download_utils.config', test_config):
+                with patch('yt_dl_manager.add_to_queue.get_config_path', return_value=mock_config_path):
+                    with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
+                        # Create a real queue instance for the test
+                        test_queue = Queue(db_path=test_db_path)
+                        mock_queue_class.return_value = test_queue
+
+                        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
+                            # Set up YoutubeDL mock
+                            mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
+                                'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
+                            }
+                            mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
+                                '/tmp/test_downloads/youtube/Test Video.mp4')
+
+                            # Mock args
+                            class TestArgs:
+                                """Simple args container for CLI simulation in tests."""
+                                url = test_url
+                                download = True
+
+                            # Capture output
+                            captured_out = io.StringIO()
+                            sys_stdout = sys.stdout
+                            sys.stdout = captured_out
+                            try:
+                                add_to_queue.main(TestArgs())
+                            finally:
+                                sys.stdout = sys_stdout
+
+                            # Verify output
+                            output = captured_out.getvalue()
+                            self.assertIn("URL added to queue", output)
+                            self.assertIn("Downloaded:", output)
+
+                            # Verify YoutubeDL was called
+                            mock_ydl.assert_called()
+
+        finally:
+            # Clean up temporary files
+            try:
+                os.unlink(test_db_path)
+            except FileNotFoundError:
+                pass
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -26,7 +99,6 @@ class TestAddToQueue(unittest.TestCase):
 
         # Initialize the AddToQueue instance with mocked Queue that uses test database
         with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
             # Create a real Queue instance with our test database path
             test_queue = Queue(db_path=self.test_db_path)
             mock_queue_class.return_value = test_queue
@@ -145,7 +217,6 @@ class TestAddToQueue(unittest.TestCase):
         """Test behavior when database connection fails."""
         # Create AddToQueue with invalid database path
         with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
             # Create a Queue instance with invalid database path
             invalid_queue = Queue(db_path="/invalid/path/to/database.db")
             mock_queue_class.return_value = invalid_queue
@@ -166,9 +237,8 @@ class TestAddToQueue(unittest.TestCase):
                 cur = conn.cursor()
                 try:
                     cur.execute(
-                        "INSERT INTO downloads (url, status, "
-                        "timestamp_requested) VALUES (?, 'pending', ?)",
-                        (url, datetime.now(timezone.utc).isoformat())
+                        "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
+                        (url, 'pending', datetime.now(timezone.utc).isoformat())
                     )
                     conn.commit()
                 except sqlite3.IntegrityError:

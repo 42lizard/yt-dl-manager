@@ -55,10 +55,11 @@ class TestQueue(unittest.TestCase):
     def test_add_url_new(self):
         """Test adding a new URL to the queue."""
         test_url = "https://www.example.com/video"
-        success, message = self.queue.add_url(test_url)
+        success, message, row_id = self.queue.add_url(test_url)
         self.assertTrue(success)
         self.assertIn("URL added to queue", message)
         self.assertIn(test_url, message)
+        self.assertIsInstance(row_id, int)
 
     def test_add_url_duplicate(self):
         """Test adding a duplicate URL to the queue."""
@@ -66,9 +67,10 @@ class TestQueue(unittest.TestCase):
         # Add URL first time
         self.queue.add_url(test_url)
         # Try to add same URL again
-        success, message = self.queue.add_url(test_url)
+        success, message, row_id = self.queue.add_url(test_url)
         self.assertFalse(success)
         self.assertIn("URL already exists", message)
+        self.assertIsInstance(row_id, int)
 
     def test_add_url_invalid_empty_string(self):
         """Test adding an empty string URL raises ValueError."""

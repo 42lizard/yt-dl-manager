@@ -13,10 +13,12 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📁 **Smart organization** - Files organized by extractor (youtube, vimeo, etc.)
 - 🔄 **Retry logic** - Up to 3 attempts for failed downloads with backoff
 - 📝 **Metadata embedding** - Embeds metadata directly in downloaded files
+- 📋 **Production logging** - Comprehensive logging with file and console output
+- 🔒 **Security hardened** - Protected against SQL injection attacks
 - 🎛️ **User-friendly config** - Automatic configuration in user directories with `init` command
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
-- 🧪 **Comprehensive testing** - 63 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 64 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Simple subcommands for all operations
@@ -72,10 +74,19 @@ python -m yt_dl_manager daemon
 
 The `add` command provides intelligent duplicate handling:
 
+
 ```bash
-# Add a new URL
+# Add a new URL to the queue
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 # Output: URL added to queue: https://www.youtube.com/watch?v=example
+
+# Add a new URL and immediately start the download
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" --download
+# or using the short flag
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
+# Output:
+# URL added to queue: https://www.youtube.com/watch?v=example
+# Downloaded: downloads/youtube/Example Video.mp4
 
 # Try to add the same URL again
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
@@ -136,8 +147,8 @@ The application automatically creates configuration files in user directories:
 **Default Settings (example for macOS):**
 ```ini
 [DEFAULT]
-TARGET_FOLDER = /Users/username/Downloads/yt-dl-manager
-DATABASE_PATH = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
+target_folder = /Users/username/Downloads/yt-dl-manager
+database_path = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
 ```
 
 *Note: Actual paths will vary by operating system. The application uses `platformdirs` to automatically determine the appropriate user directories for your OS.*
@@ -145,6 +156,24 @@ DATABASE_PATH = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_
 To customize, edit the config file or create a new default configuration:
 ```bash
 python -m yt_dl_manager init
+```
+
+### Logging Configuration
+
+The application includes comprehensive logging for production use:
+
+- **Log files**: Stored in user log directory (e.g., `~/.local/share/yt-dl-manager/logs/yt-dl-manager.log`)
+- **Console output**: Warnings and errors displayed on stderr
+- **CLI feedback**: User-visible messages shown during interactive use
+- **Log levels**: Configurable via `YT_DL_MANAGER_LOG_LEVEL` environment variable
+
+```bash
+# Set debug logging level
+export YT_DL_MANAGER_LOG_LEVEL=DEBUG
+python -m yt_dl_manager daemon
+
+# Default level is INFO
+python -m yt_dl_manager daemon
 ```
 
 ## 🧪 Development & Testing
@@ -174,12 +203,14 @@ yt-dl-manager/
 │   ├── queue.py           # Centralized queue management class
 │   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
 │   ├── config.py          # Configuration management with platformdirs
-│   └── create_config.py   # Default configuration creation utility
+│   ├── create_config.py   # Default configuration creation utility
+│   ├── download_utils.py  # Shared download logic with yt-dlp integration
+│   └── logging_config.py  # Centralized logging configuration
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
-│   ├── test_add_to_queue.py # CLI tool tests (8 test cases)
+│   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
 │   ├── test_queue.py      # Queue class tests (26 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (15 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (16 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   └── test_utils.py      # Test helpers
 ├── requirements.txt       # Dependencies
