@@ -7,6 +7,9 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+
+import io
+import sys
 from yt_dl_manager.add_to_queue import AddToQueue
 from yt_dl_manager.queue import Queue
 from yt_dl_manager import add_to_queue
@@ -38,16 +41,17 @@ class TestAddToQueue(unittest.TestCase):
                 url = test_url
                 download = True
             with patch('yt_dl_manager.add_to_queue.AddToQueue', return_value=queue_adder):
-                with patch('builtins.print') as mock_print:
+                captured_out = io.StringIO()
+                sys_stdout = sys.stdout
+                sys.stdout = captured_out
+                try:
                     add_to_queue.main(Args())
-                    calls = [c[0][0] for c in mock_print.call_args_list]
-                    try:
-                        assert any("URL added to queue" in call for call in calls)
-                    except AssertionError:
-                        print("DEBUG: print calls:", calls)
-                        raise
-                    assert any(
-                        "Downloaded: /fake/path/Test Video.mp4" in call for call in calls)
+                finally:
+                    sys.stdout = sys_stdout
+                output = captured_out.getvalue()
+                print("DEBUG: captured output:", output)
+                assert "URL added to queue" in output
+                assert "Downloaded: /fake/path/Test Video.mp4" in output
             mock_claim.assert_called()
             mock_complete.assert_called()
         os.unlink(test_db_path)
