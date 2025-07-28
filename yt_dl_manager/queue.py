@@ -13,6 +13,12 @@ class Queue:
     add_to_queue modules.
     """
 
+    def claim_pending_for_download(self, download_id):
+        """Atomically claim a pending download for processing.
+        Returns True if claim succeeded, False otherwise.
+        """
+        return self.db.claim_pending_for_download(download_id)
+
     def __init__(self, db_path=None):
         """Initialize the Queue with database path.
 

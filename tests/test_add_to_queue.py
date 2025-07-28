@@ -25,7 +25,7 @@ class TestAddToQueue(unittest.TestCase):
         test_queue = Queue(db_path=test_db_path)
         queue_adder = AddToQueue(queue=test_queue)
         with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl, \
-                patch.object(test_queue, 'start_download') as mock_start, \
+                patch.object(test_queue, 'claim_pending_for_download', return_value=True) as mock_claim, \
                 patch.object(test_queue, 'complete_download') as mock_complete:
             mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
                 'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
@@ -44,7 +44,7 @@ class TestAddToQueue(unittest.TestCase):
                     assert any("URL added to queue" in call for call in calls)
                     assert any(
                         "Downloaded: /fake/path/Test Video.mp4" in call for call in calls)
-            mock_start.assert_called()
+            mock_claim.assert_called()
             mock_complete.assert_called()
         os.unlink(test_db_path)
 

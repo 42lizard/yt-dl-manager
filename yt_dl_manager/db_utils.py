@@ -54,6 +54,23 @@ CREATE TABLE IF NOT EXISTS downloads (
 class DatabaseUtils:
     """Centralized database operations for yt-dl-manager."""
 
+    def claim_pending_for_download(self, row_id):
+        """Atomically claim a pending download for processing.
+        Sets status to 'downloading' only if current status is 'pending'.
+        Returns True if claim succeeded, False otherwise.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE downloads SET status = '{DownloadStatus.DOWNLOADING.value}' "
+            "WHERE id = ? AND status = ?",
+            (row_id, DownloadStatus.PENDING.value)
+        )
+        updated = cur.rowcount
+        conn.commit()
+        conn.close()
+        return updated == 1
+
     def __init__(self, db_path=None):
         """Initialize DatabaseUtils with database path.
         Args:

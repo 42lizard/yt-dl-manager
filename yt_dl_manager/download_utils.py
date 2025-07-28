@@ -14,7 +14,10 @@ def download_media(queue, row_id, url, retries, max_retries=3):
         'embedmetadata': True,
         'quiet': True,
     }
-    queue.start_download(row_id)
+    # Atomically claim the job for download
+    if not queue.claim_pending_for_download(row_id):
+        print(f"Skipping download for row {row_id}: already being processed.")
+        return
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
