@@ -8,11 +8,45 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from yt_dl_manager.add_to_queue import AddToQueue
+from yt_dl_manager.queue import Queue
+from yt_dl_manager import add_to_queue
 from tests.test_utils import create_test_schema
 
 
 class TestAddToQueue(unittest.TestCase):
-    """Test cases for AddToQueue class."""
+    """Unit tests for the AddToQueue class and related queue operations."""
+
+    def test_add_url_with_download_flag(self):
+        """Test adding a URL with --download triggers immediate download logic."""
+        test_url = "https://www.youtube.com/watch?v=immediate"
+        test_db_fd, test_db_path = tempfile.mkstemp()
+        os.close(test_db_fd)
+        create_test_schema(test_db_path)
+        test_queue = Queue(db_path=test_db_path)
+        queue_adder = AddToQueue(queue=test_queue)
+        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl, \
+                patch.object(test_queue, 'start_download') as mock_start, \
+                patch.object(test_queue, 'complete_download') as mock_complete:
+            mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
+                'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
+            }
+            mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = \
+                '/fake/path/Test Video.mp4'
+
+            class Args:
+                """Simple args container for CLI simulation in tests."""
+                url = test_url
+                download = True
+            with patch('yt_dl_manager.add_to_queue.AddToQueue', return_value=queue_adder):
+                with patch('builtins.print') as mock_print:
+                    add_to_queue.main(Args())
+                    calls = [c[0][0] for c in mock_print.call_args_list]
+                    assert any("URL added to queue" in call for call in calls)
+                    assert any(
+                        "Downloaded: /fake/path/Test Video.mp4" in call for call in calls)
+            mock_start.assert_called()
+            mock_complete.assert_called()
+        os.unlink(test_db_path)
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -26,7 +60,6 @@ class TestAddToQueue(unittest.TestCase):
 
         # Initialize the AddToQueue instance with mocked Queue that uses test database
         with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
             # Create a real Queue instance with our test database path
             test_queue = Queue(db_path=self.test_db_path)
             mock_queue_class.return_value = test_queue
@@ -145,7 +178,6 @@ class TestAddToQueue(unittest.TestCase):
         """Test behavior when database connection fails."""
         # Create AddToQueue with invalid database path
         with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            from yt_dl_manager.queue import Queue  # pylint: disable=import-outside-toplevel
             # Create a Queue instance with invalid database path
             invalid_queue = Queue(db_path="/invalid/path/to/database.db")
             mock_queue_class.return_value = invalid_queue

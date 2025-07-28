@@ -168,7 +168,8 @@ class DatabaseUtils:
         Args:
             media_url (str): The URL to add to the queue.
         Returns:
-            tuple: (success, message) where success is bool and message is str.
+            tuple: (success, message, row_id) where success is bool,
+            message is str, and row_id is int or None.
         """
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
@@ -176,17 +177,22 @@ class DatabaseUtils:
             cur.execute(
                 f"INSERT INTO downloads (url, status, timestamp_requested) "
                 f"VALUES (?, '{DownloadStatus.PENDING.value}', ?)",
-                (media_url, datetime.datetime.now(
-                    datetime.timezone.utc).isoformat())
+                (
+                    media_url,
+                    datetime.datetime.now(
+                        datetime.timezone.utc
+                    ).isoformat(),
+                ),
             )
             conn.commit()
-            return True, f"URL added to queue: {media_url}"
+            row_id = cur.lastrowid
+            return True, f"URL added to queue: {media_url}", row_id
         except sqlite3.IntegrityError:
             cur.execute(
-                "SELECT final_filename, status FROM downloads WHERE url = ?", (media_url,))
+                "SELECT id, final_filename, status FROM downloads WHERE url = ?", (media_url,))
             row = cur.fetchone()
             if row:
-                filename, status = row
+                row_id, filename, status = row
                 if filename:
                     message = (
                         f"URL already exists in queue: {media_url}\n"
@@ -194,9 +200,9 @@ class DatabaseUtils:
                     )
                 else:
                     message = f"URL already exists in queue: {media_url}\nStatus: {status}"
-            else:
-                message = f"URL already exists in queue: {media_url}"
-            return False, message
+                return False, message, row_id
+            message = f"URL already exists in queue: {media_url}"
+            return False, message, None
         finally:
             conn.close()
 

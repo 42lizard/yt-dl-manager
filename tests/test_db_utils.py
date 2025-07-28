@@ -199,10 +199,11 @@ class TestDatabaseUtils(unittest.TestCase):
     def test_add_url_new(self):
         """Test adding a new URL."""
         test_url = "https://www.youtube.com/watch?v=test"
-        success, message = self.db_utils.add_url(test_url)
+        success, message, row_id = self.db_utils.add_url(test_url)
 
         self.assertTrue(success)
         self.assertEqual(message, f"URL added to queue: {test_url}")
+        self.assertIsInstance(row_id, int)
 
         # Verify in database
         conn = sqlite3.connect(self.test_db_path)
@@ -224,11 +225,12 @@ class TestDatabaseUtils(unittest.TestCase):
         self.db_utils.add_url(test_url)
 
         # Add second time
-        success, message = self.db_utils.add_url(test_url)
+        success, message, row_id = self.db_utils.add_url(test_url)
 
         self.assertFalse(success)
         self.assertIn("URL already exists in queue", message)
         self.assertIn(test_url, message)
+        self.assertIsInstance(row_id, int)
 
     def test_queue_length_empty(self):
         """Test queue length when empty."""

@@ -26,7 +26,9 @@ class Queue:
             self.db_path = config['DEFAULT']['DATABASE_PATH']
         else:
             self.db_path = db_path
-        self.db = DatabaseUtils(self.db_path)
+        self.db = DatabaseUtils(
+            self.db_path
+        )
 
     def add_url(self, media_url):
         """Add a media URL to the downloads queue.
@@ -35,7 +37,8 @@ class Queue:
             media_url (str): The URL to add to the queue.
 
         Returns:
-            tuple: (success, message) where success is bool and message is str.
+            tuple: (success, message, row_id) where success is bool,
+            message is str, and row_id is int or None.
 
         Raises:
             ValueError: If media_url is not a valid string or is empty.
@@ -45,14 +48,14 @@ class Queue:
 
         self.logger.info("Adding URL to queue: %s", media_url)
         try:
-            result = self.db.add_url(media_url)
-            if result[0]:
+            success, message, row_id = self.db.add_url(media_url)
+            if success:
                 self.logger.info(
                     "Successfully added URL to queue: %s", media_url)
             else:
                 self.logger.warning(
                     "URL already exists in queue: %s", media_url)
-            return result
+            return success, message, row_id
         except Exception as e:
             self.logger.error(
                 "Failed to add URL to queue: %s - %s", media_url, str(e))

@@ -38,6 +38,11 @@ python -m yt_dl_manager init [--force]
 # Add URLs to download queue
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 
+# Add and immediately download
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" --download
+# or
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
+
 # Run the download daemon
 python -m yt_dl_manager daemon
 ```

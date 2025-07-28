@@ -72,10 +72,19 @@ python -m yt_dl_manager daemon
 
 The `add` command provides intelligent duplicate handling:
 
+
 ```bash
-# Add a new URL
+# Add a new URL to the queue
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 # Output: URL added to queue: https://www.youtube.com/watch?v=example
+
+# Add a new URL and immediately start the download
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" --download
+# or using the short flag
+python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
+# Output:
+# URL added to queue: https://www.youtube.com/watch?v=example
+# Downloaded: downloads/youtube/Example Video.mp4
 
 # Try to add the same URL again
 python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"

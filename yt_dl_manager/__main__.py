@@ -28,6 +28,9 @@ def main():
     add_parser = subparsers.add_parser("add", help="Add a video to the queue.")
     add_parser.add_argument(
         "url", type=str, help="The URL of the video to download.")
+    add_parser.add_argument(
+        "-d", "--download", action="store_true",
+        help="Immediately start the download after adding to the queue.")
 
     args = parser.parse_args()
 
