@@ -19,7 +19,8 @@ yt-dl-manager/
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download_utils.py  # Shared download logic with yt-dlp integration
-│   └── logging_config.py  # Centralized logging configuration
+│   ├── logging_config.py  # Centralized logging configuration
+│   └── tui.py             # Terminal User Interface with Textual
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (15 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
@@ -27,8 +28,9 @@ yt-dl-manager/
 │   ├── test_db_utils.py   # Database utilities tests (33 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (33 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
+│   ├── test_tui.py         # TUI tests (11 test cases)
 │   └── test_utils.py      # Test helpers
-├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs)
+├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs, textual)
 ├── LICENSE                # ISC license
 └── README.md              # Comprehensive documentation
 ```
@@ -49,6 +51,9 @@ python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
 
 # Run the download daemon
 python -m yt_dl_manager daemon
+
+# Launch Terminal User Interface
+python -m yt_dl_manager tui [--recent-limit N]
 ```
 
 ### Database Schema
@@ -62,10 +67,11 @@ Table: `downloads`
 - `extractor` (TEXT, nullable)
 - `retries` (INTEGER DEFAULT 0)
 
-✅ **63 comprehensive unit tests** (100% pass rate)
+✅ **108 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** with strict code quality standards
 ✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
-✅ **Modern CLI interface** with subcommands (init, daemon, add)
+✅ **Modern CLI interface** with subcommands (init, daemon, add, tui)
+✅ **Terminal User Interface (TUI)** with keyboard-driven queue management
 ✅ **ISC License** for open-source distribution
 ✅ **Comprehensive documentation** with updated usage examples
 ✅ **User-friendly configuration** with platformdirs integration and init command
@@ -73,7 +79,7 @@ Table: `downloads`
 ## Feature Checklist
 
 ### ✅ Core Features (Complete)
-- [x] Modern CLI interface with subcommands (init, daemon, add) via __main__.py
+- [x] Modern CLI interface with subcommands (init, daemon, add, tui) via __main__.py
 - [x] **Database maintenance commands** - Comprehensive queue and file management
 - [x] User-friendly configuration with platformdirs and init command
 - [x] SQLite3 schema and automatic migration (handled by db_utils.py)
@@ -85,7 +91,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue functionality with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] **Comprehensive unit test suite (97 tests)**
+- [x] **Comprehensive unit test suite (108 tests)**
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -93,6 +99,7 @@ Table: `downloads`
 - [x] Complete documentation with updated CLI examples
 - [x] **Centralized Queue class for consolidated queue handling**
 - [x] **Configuration management improvements with init command**
+- [x] **Terminal User Interface (TUI) with Textual library for interactive queue management**
 
 ### ✅ Database Maintenance Features (Complete)
 - [x] **Queue viewing commands** - List pending, failed, downloaded items with filters
@@ -131,7 +138,8 @@ pylint yt_dl_manager
 - **Database Tests (33 cases)**: Extended database operations, maintenance functions, data integrity
 - **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **Quality Metrics**: 100% test pass rate (97/97), 10/10 pylint score, CI/CD pipeline
+- **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
+- **Quality Metrics**: 100% test pass rate (108/108), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.8, 3.9, 3.10, 3.11
@@ -181,3 +189,13 @@ pylint yt_dl_manager
 - Streamlined config file creation with init command
 - Better error handling for missing configuration
 - Updated documentation with current command examples
+
+**Terminal User Interface (TUI)**: Implemented modern interactive interface using Textual:
+- Keyboard-driven interface with shortcuts (a=add, r=refresh, q=quit)
+- Dual-panel layout showing pending downloads and recent completed downloads
+- Modal dialog for URL input with Enter/Escape handling
+- Real-time database integration with existing SQLite infrastructure
+- Professional interface with responsive design and proper timestamp formatting
+- Full file path display in completed downloads table for better file management
+- Comprehensive test coverage with 11 unit tests for TUI functionality
+- Cross-platform compatibility (Linux, macOS, Windows)
