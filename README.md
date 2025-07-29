@@ -29,8 +29,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 
 ### Installation
 
-#### Option 1: Install from PyPI (Coming Soon)
-> **Note**: The PyPI package is not yet available. Please use the source installation method below for now.
+#### Option 1: Install from PyPI
 
 ```bash
 pip install yt-dl-manager
