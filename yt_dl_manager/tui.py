@@ -1,7 +1,6 @@
 """Textual-based Terminal User Interface for yt-dl-manager."""
 
 import logging
-import os
 from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -257,10 +256,9 @@ class TUIApp(App):
 
                 filename = download.get('final_filename', '')
                 if filename:
-                    # Show just the filename, not full path
-                    filename = os.path.basename(filename)
-                    display_filename = filename[:30] + \
-                        '...' if len(filename) > 30 else filename
+                    # Show the full path to the file
+                    display_filename = filename[:60] + \
+                        '...' if len(filename) > 60 else filename
                 else:
                     display_filename = 'N/A'
 
