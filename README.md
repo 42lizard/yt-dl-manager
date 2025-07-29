@@ -23,6 +23,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
+- 🖥️ **Terminal User Interface (TUI)** - Interactive keyboard-driven interface for queue management
 
 ## 🚀 Quick Start
 
@@ -67,7 +68,61 @@ python -m yt_dl_manager add "https://vimeo.com/123456789"
 
 # Start the daemon (runs continuously)
 python -m yt_dl_manager daemon
+
+# Launch the Terminal User Interface (TUI)
+python -m yt_dl_manager tui
 ```
+
+## 🖥️ Terminal User Interface (TUI)
+
+yt-dl-manager includes a modern Terminal User Interface built with Textual, providing an interactive way to manage your download queue directly from the terminal.
+
+### Launching the TUI
+
+```bash
+# Launch TUI with default settings (shows 10 recent downloads)
+python -m yt_dl_manager tui
+
+# Launch TUI with custom recent downloads limit
+python -m yt_dl_manager tui --recent-limit 20
+```
+
+### TUI Features
+
+- **📋 Dual-Panel Layout**: 
+  - **Pending Downloads Panel**: Shows all queued downloads with ID, URL, status, timestamp, and retry count
+  - **Recent Completed Downloads Panel**: Displays recent completed downloads with full file paths
+
+- **⌨️ Keyboard Shortcuts**:
+  - Press **`a`** to open a modal dialog for entering new video URLs
+  - Press **`r`** to manually refresh the data tables
+  - Press **`q`** to quit the application
+  - **Enter** key submits URLs in the input modal
+  - **Escape** key cancels the modal
+
+- **🎯 Smart Display**:
+  - URLs are truncated for readability while maintaining essential information
+  - Timestamps formatted as YYYY-MM-DD HH:MM for easy reading
+  - Full file paths shown in completed downloads for better file management
+  - Responsive design that adapts to terminal size
+
+- **🔄 Real-time Integration**:
+  - Connects directly to your existing SQLite database
+  - Added URLs are immediately available to the daemon process
+  - No need to restart the daemon when adding URLs via TUI
+
+### TUI Command Options
+
+```bash
+# Basic usage
+python -m yt_dl_manager tui
+
+# Control recent downloads display
+python -m yt_dl_manager tui --recent-limit 25    # Show 25 recent downloads
+python -m yt_dl_manager tui --recent-limit 5     # Show only 5 recent downloads
+```
+
+The TUI provides a modern, efficient way to monitor download queues and add new URLs without switching between terminal commands, significantly improving the user experience for interactive queue management.
 
 ## 🔧 Database Maintenance Commands
 
@@ -263,7 +318,8 @@ yt-dl-manager/
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download_utils.py  # Shared download logic with yt-dlp integration
-│   └── logging_config.py  # Centralized logging configuration
+│   ├── logging_config.py  # Centralized logging configuration
+│   └── tui.py             # Terminal User Interface with Textual
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (15 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
@@ -271,10 +327,9 @@ yt-dl-manager/
 │   ├── test_db_utils.py   # Database utilities tests (33 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (33 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
+│   ├── test_tui.py         # TUI tests (11 test cases)
 │   └── test_utils.py      # Test helpers
-│   ├── test_create_config.py # Configuration tests (3 test cases)
-│   └── test_utils.py      # Test helpers
-├── requirements.txt       # Dependencies
+├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs, textual)
 ├── LICENSE                # ISC license
 └── README.md              # Documentation
 ```
@@ -287,7 +342,8 @@ yt-dl-manager/
 - **Database Tests (33 cases)**: Extended database operations, maintenance functions, data integrity
 - **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **Quality Metrics**: 100% test pass rate (97/97), 10/10 pylint score, CI/CD pipeline
+- **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
+- **Quality Metrics**: 100% test pass rate (108/108), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`
