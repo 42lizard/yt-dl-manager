@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt-dl-manager"
+version = "0.0.1"
+description = "A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing and a user-friendly CLI"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Oliver Gassner", email = "42lizard@42lizard.dev"}
+]
+maintainers = [
+    {name = "Oliver Gassner", email = "42lizard@42lizard.dev"}
+]
+keywords = ["youtube-dl", "yt-dlp", "download", "manager", "media", "video", "audio"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Archiving",
+    "Topic :: Utilities",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "yt-dlp",
+    "platformdirs",
+    "textual",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pylint",
+    "autopep8",
+]
+
+[project.scripts]
+yt-dl-manager = "yt_dl_manager.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/42lizard/yt-dl-manager"
+Repository = "https://github.com/42lizard/yt-dl-manager"
+Issues = "https://github.com/42lizard/yt-dl-manager/issues"
+Documentation = "https://github.com/42lizard/yt-dl-manager#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["yt_dl_manager*"]
+
+[tool.setuptools.package-data]
+yt_dl_manager = ["*.py"]

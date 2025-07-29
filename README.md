@@ -29,16 +29,24 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 
 ### Installation
 
+#### Option 1: Install from PyPI
+
+```bash
+pip install yt-dl-manager
+```
+
+#### Option 2: Install from Source (Recommended for now)
 1. **Clone the repository and set up the environment**:
    ```bash
    git clone https://github.com/42lizard/yt-dl-manager.git
    cd yt-dl-manager
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
-2. **Install system dependencies**:
+#### System Dependencies
+2. **Install required system dependencies**:
    ```bash
    # Ubuntu/Debian
    sudo apt install ffmpeg
@@ -48,29 +56,32 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
    sudo pacman -S ffmpeg
    ```
 
-3. **Initialize configuration**:
+### Getting Started
+
+1. **Initialize configuration**:
    ```bash
    # Create default configuration file
-   python -m yt_dl_manager init
+   yt-dl-manager init
    
    # Or force overwrite existing config
-   python -m yt_dl_manager init --force
+   yt-dl-manager init --force
    ```
 
 ### Basic Usage
 
 ```bash
 # Show help
-python -m yt_dl_manager
+yt-dl-manager --help
+
 # Add URLs to download queue
-python -m yt_dl_manager add "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-python -m yt_dl_manager add "https://vimeo.com/123456789"
+yt-dl-manager add "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+yt-dl-manager add "https://vimeo.com/123456789"
 
 # Start the daemon (runs continuously)
-python -m yt_dl_manager daemon
+yt-dl-manager daemon
 
 # Launch the Terminal User Interface (TUI)
-python -m yt_dl_manager tui
+yt-dl-manager tui
 ```
 
 ## 🖥️ Terminal User Interface (TUI)
@@ -81,10 +92,10 @@ yt-dl-manager includes a modern Terminal User Interface built with Textual, prov
 
 ```bash
 # Launch TUI with default settings (shows 10 recent downloads)
-python -m yt_dl_manager tui
+yt-dl-manager tui
 
 # Launch TUI with custom recent downloads limit
-python -m yt_dl_manager tui --recent-limit 20
+yt-dl-manager tui --recent-limit 20
 ```
 
 ### TUI Features
@@ -115,11 +126,11 @@ python -m yt_dl_manager tui --recent-limit 20
 
 ```bash
 # Basic usage
-python -m yt_dl_manager tui
+yt-dl-manager tui
 
 # Control recent downloads display
-python -m yt_dl_manager tui --recent-limit 25    # Show 25 recent downloads
-python -m yt_dl_manager tui --recent-limit 5     # Show only 5 recent downloads
+yt-dl-manager tui --recent-limit 25    # Show 25 recent downloads
+yt-dl-manager tui --recent-limit 5     # Show only 5 recent downloads
 ```
 
 The TUI provides a modern, efficient way to monitor download queues and add new URLs without switching between terminal commands, significantly improving the user experience for interactive queue management.
@@ -131,53 +142,53 @@ yt-dl-manager includes comprehensive database maintenance commands for managing 
 ### Queue Viewing Commands
 ```bash
 # Show queue status dashboard
-python -m yt_dl_manager status
+yt-dl-manager status
 
 # List pending downloads with optional filters
-python -m yt_dl_manager list pending --limit 10 --sort-by date
+yt-dl-manager list pending --limit 10 --sort-by date
 
 # List failed downloads
-python -m yt_dl_manager list failed
+yt-dl-manager list failed
 
 # List downloaded items
-python -m yt_dl_manager list downloaded --extractor youtube
+yt-dl-manager list downloaded --extractor youtube
 ```
 
 ### Queue Management Commands
 ```bash
 # Remove all failed downloads older than 30 days
-python -m yt_dl_manager remove failed --older-than 30
+yt-dl-manager remove failed --older-than 30
 
 # Remove specific items by ID or URL pattern
-python -m yt_dl_manager remove items 123 456
-python -m yt_dl_manager remove items "youtube.com/watch?v=example"
+yt-dl-manager remove items 123 456
+yt-dl-manager remove items "youtube.com/watch?v=example"
 
 # Retry failed downloads
-python -m yt_dl_manager retry --failed
-python -m yt_dl_manager retry 123 456
+yt-dl-manager retry --failed
+yt-dl-manager retry 123 456
 ```
 
 ### File System Integrity Commands
 ```bash
 # Check for missing files
-python -m yt_dl_manager verify
+yt-dl-manager verify
 
 # Check and automatically fix missing files
-python -m yt_dl_manager verify --fix
+yt-dl-manager verify --fix
 
 # Mark items for redownload
-python -m yt_dl_manager redownload 123 456
+yt-dl-manager redownload 123 456
 ```
 
 ### Database Maintenance Commands
 ```bash
 # Clean up database and optimize
-python -m yt_dl_manager cleanup --dry-run
-python -m yt_dl_manager cleanup
+yt-dl-manager cleanup --dry-run
+yt-dl-manager cleanup
 
 # Export queue data
-python -m yt_dl_manager export --format json --output queue.json
-python -m yt_dl_manager export --format csv --status pending
+yt-dl-manager export --format json --output queue.json
+yt-dl-manager export --format csv --status pending
 ```
 
 ## 📋 Detailed Usage
@@ -189,19 +200,19 @@ The `add` command provides intelligent duplicate handling:
 
 ```bash
 # Add a new URL to the queue
-python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
+yt-dl-manager add "https://www.youtube.com/watch?v=example"
 # Output: URL added to queue: https://www.youtube.com/watch?v=example
 
 # Add a new URL and immediately start the download
-python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" --download
+yt-dl-manager add "https://www.youtube.com/watch?v=example" --download
 # or using the short flag
-python -m yt_dl_manager add "https://www.youtube.com/watch?v=example" -d
+yt-dl-manager add "https://www.youtube.com/watch?v=example" -d
 # Output:
 # URL added to queue: https://www.youtube.com/watch?v=example
 # Downloaded: downloads/youtube/Example Video.mp4
 
 # Try to add the same URL again
-python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
+yt-dl-manager add "https://www.youtube.com/watch?v=example"
 # Output: URL already exists in queue: https://www.youtube.com/watch?v=example
 #         Status: pending
 ```
@@ -211,7 +222,7 @@ python -m yt_dl_manager add "https://www.youtube.com/watch?v=example"
 The daemon polls the database every 10 seconds and processes pending downloads:
 
 ```bash
-python -m yt_dl_manager daemon
+yt-dl-manager daemon
 # Output: Daemon started. Polling for pending downloads...
 #         Found 2 pending downloads.
 #         Downloaded: downloads/youtube/Rick Astley - Never Gonna Give You Up.mp4
@@ -223,13 +234,13 @@ Initialize or manage configuration:
 
 ```bash
 # Create default configuration file
-python -m yt_dl_manager init
+yt-dl-manager init
 
 # Force overwrite existing config
-python -m yt_dl_manager init --force
+yt-dl-manager init --force
 
 # Show help for all commands
-python -m yt_dl_manager --help
+yt-dl-manager --help
 ```
 
 ### File Organization
@@ -267,7 +278,7 @@ database_path = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_
 
 To customize, edit the config file or create a new default configuration:
 ```bash
-python -m yt_dl_manager init
+yt-dl-manager init
 ```
 
 ### Logging Configuration
@@ -282,10 +293,10 @@ The application includes comprehensive logging for production use:
 ```bash
 # Set debug logging level
 export YT_DL_MANAGER_LOG_LEVEL=DEBUG
-python -m yt_dl_manager daemon
+yt-dl-manager daemon
 
 # Default level is INFO
-python -m yt_dl_manager daemon
+yt-dl-manager daemon
 ```
 
 ## 🧪 Development & Testing
