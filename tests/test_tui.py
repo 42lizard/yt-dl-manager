@@ -1,13 +1,13 @@
 """Tests for the TUI (Text User Interface) module."""
 
-from yt_dl_manager.db_utils import DatabaseUtils
-from yt_dl_manager.tui import main as tui_main
-import unittest
-from unittest.mock import patch, MagicMock
-import tempfile
 import os
 import sys
+import tempfile
+import unittest
 from io import StringIO
+from unittest.mock import patch, MagicMock
+
+from yt_dl_manager.tui import main as tui_main
 
 # Add the parent directory to the Python path for importing
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,9 +18,8 @@ class TestTUI(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment before each test."""
-        self.test_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-        self.test_db.close()
-        self.db_path = self.test_db.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as tmp_file:
+            self.db_path = tmp_file.name
 
     def tearDown(self):
         """Clean up after each test."""
@@ -58,7 +57,7 @@ class TestTUI(unittest.TestCase):
 
     @patch('builtins.input')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_tui_status_command(self, mock_stdout, mock_input):
+    def test_tui_status_command(self, _mock_stdout, mock_input):
         """Test that TUI status command works."""
         # Set up mock input: status, then exit
         mock_input.side_effect = ['1', '6']
@@ -110,7 +109,7 @@ class TestTUI(unittest.TestCase):
 
     @patch('builtins.input')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_tui_list_commands(self, mock_stdout, mock_input):
+    def test_tui_list_commands(self, _mock_stdout, mock_input):
         """Test that TUI list commands work."""
         # Test pending, failed, downloaded lists, then exit
         mock_input.side_effect = ['2', '3', '4', '6']

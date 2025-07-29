@@ -139,6 +139,44 @@ def _setup_maintenance_commands(subparsers):
     export_parser.add_argument("--output", help="Output file path.")
 
 
+def _handle_init_command(args):
+    """Handle init command."""
+    create_default_config(force=args.force)
+
+
+def _handle_daemon_command(_args):
+    """Handle daemon command."""
+    daemon_main()
+
+
+def _handle_tui_command(_args):
+    """Handle tui command."""
+    tui_main()
+
+
+def _handle_add_command(args):
+    """Handle add command."""
+    add_to_queue_main(args)
+
+
+def _get_command_handlers():
+    """Get mapping of commands to their handler functions."""
+    return {
+        "init": _handle_init_command,
+        "daemon": _handle_daemon_command,
+        "tui": _handle_tui_command,
+        "add": _handle_add_command,
+        "list": handle_list_command,
+        "status": handle_status_command,
+        "remove": handle_remove_command,
+        "retry": handle_retry_command,
+        "verify": handle_verify_command,
+        "redownload": handle_redownload_command,
+        "cleanup": handle_cleanup_command,
+        "export": handle_export_command,
+    }
+
+
 def main():
     """Main function for the CLI."""
     # Set up logging
@@ -152,32 +190,11 @@ def main():
     parser = setup_argument_parser()
     args = parser.parse_args()
 
-    if args.command == "init":
-        create_default_config(force=args.force)
-    elif args.command == "daemon":
-        daemon_main()
-    elif args.command == "tui":
-        tui_main()
-    elif args.command == "add":
-        add_to_queue_main(args)
-    elif args.command == "list":
-        handle_list_command(args)
-    elif args.command == "status":
-        handle_status_command()
-    elif args.command == "remove":
-        handle_remove_command(args)
-    elif args.command == "retry":
-        handle_retry_command(args)
-    elif args.command == "verify":
-        handle_verify_command(args)
-    elif args.command == "redownload":
-        handle_redownload_command(args)
-    elif args.command == "cleanup":
-        handle_cleanup_command(args)
-    elif args.command == "export":
-        handle_export_command(args)
-    # display help if no command is provided
+    command_handlers = _get_command_handlers()
+    if args.command in command_handlers:
+        command_handlers[args.command](args)
     else:
+        # display help if no command is provided
         parser.print_help()
 
 
@@ -244,7 +261,7 @@ def handle_list_command(args):
         maintenance.print_downloads_table(downloads, 'downloaded')
 
 
-def handle_status_command():
+def handle_status_command(_args):
     """Handle status command."""
     maintenance = MaintenanceCommands()
     maintenance.show_status()
