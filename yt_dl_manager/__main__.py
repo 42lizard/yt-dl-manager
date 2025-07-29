@@ -9,6 +9,7 @@ from .create_config import create_default_config
 from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
 from .maintenance import MaintenanceCommands
+from .tui import main as tui_main
 
 
 def setup_argument_parser():
@@ -29,6 +30,9 @@ def setup_argument_parser():
 
     # daemon command
     subparsers.add_parser("daemon", help="Run the download daemon.")
+
+    # tui command  
+    subparsers.add_parser("tui", help="Start interactive text user interface.")
 
     # add command
     add_parser = subparsers.add_parser("add", help="Add a video to the queue.")
@@ -152,6 +156,8 @@ def main():
         create_default_config(force=args.force)
     elif args.command == "daemon":
         daemon_main()
+    elif args.command == "tui":
+        tui_main()
     elif args.command == "add":
         add_to_queue_main(args)
     elif args.command == "list":
