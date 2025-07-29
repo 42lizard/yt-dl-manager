@@ -60,10 +60,10 @@ class DatabaseUtils:
 
     def _build_in_clause_placeholders(self, count):
         """Build a safe IN clause with the specified number of placeholders.
-        
+
         Args:
             count (int): Number of placeholders needed.
-            
+
         Returns:
             str: Safe placeholder string like "?,?,?"
         """
@@ -427,13 +427,15 @@ class DatabaseUtils:
         placeholders = self._build_in_clause_placeholders(len(download_ids))
 
         # Use string concatenation instead of f-string for SQL
-        query = "SELECT COUNT(*) FROM downloads WHERE id IN (" + placeholders + ")"
+        query = "SELECT COUNT(*) FROM downloads WHERE id IN (" + \
+            placeholders + ")"
 
         cur.execute(query, download_ids)
         count = cur.fetchone()[0]
 
         if not dry_run and count > 0:
-            delete_query = "DELETE FROM downloads WHERE id IN (" + placeholders + ")"
+            delete_query = "DELETE FROM downloads WHERE id IN (" + \
+                placeholders + ")"
             cur.execute(delete_query, download_ids)
             conn.commit()
 
@@ -485,14 +487,14 @@ class DatabaseUtils:
 
         if reset_retries:
             query = ("UPDATE downloads "
-                    "SET status = ?, retries = 0, "
-                    "timestamp_downloaded = NULL, final_filename = NULL "
-                    "WHERE id IN (" + placeholders + ")")
+                     "SET status = ?, retries = 0, "
+                     "timestamp_downloaded = NULL, final_filename = NULL "
+                     "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
         else:
             query = ("UPDATE downloads "
-                    "SET status = ?, timestamp_downloaded = NULL, final_filename = NULL "
-                    "WHERE id IN (" + placeholders + ")")
+                     "SET status = ?, timestamp_downloaded = NULL, final_filename = NULL "
+                     "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
 
         cur.execute(query, params)

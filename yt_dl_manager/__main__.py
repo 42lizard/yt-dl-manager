@@ -31,7 +31,7 @@ def setup_argument_parser():
     # daemon command
     subparsers.add_parser("daemon", help="Run the download daemon.")
 
-    # tui command  
+    # tui command
     subparsers.add_parser("tui", help="Start interactive text user interface.")
 
     # add command

@@ -1,5 +1,7 @@
 """Tests for the TUI (Text User Interface) module."""
 
+from yt_dl_manager.db_utils import DatabaseUtils
+from yt_dl_manager.tui import main as tui_main
 import unittest
 from unittest.mock import patch, MagicMock
 import tempfile
@@ -9,9 +11,6 @@ from io import StringIO
 
 # Add the parent directory to the Python path for importing
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from yt_dl_manager.tui import main as tui_main
-from yt_dl_manager.db_utils import DatabaseUtils
 
 
 class TestTUI(unittest.TestCase):
@@ -63,21 +62,22 @@ class TestTUI(unittest.TestCase):
         """Test that TUI status command works."""
         # Set up mock input: status, then exit
         mock_input.side_effect = ['1', '6']
-        
+
         with patch('yt_dl_manager.tui.DatabaseUtils') as mock_db_utils:
             mock_db_instance = MagicMock()
             mock_db_instance.db_path = self.db_path
             mock_db_utils.return_value = mock_db_instance
-            
+
             with patch('yt_dl_manager.tui.MaintenanceCommands') as mock_maintenance:
                 mock_maintenance_instance = MagicMock()
                 mock_maintenance.return_value = mock_maintenance_instance
-                
+
                 # Run TUI
                 tui_main()
-                
+
                 # Verify show_status was called twice (once at start, once from menu)
-                self.assertEqual(mock_maintenance_instance.show_status.call_count, 2)
+                self.assertEqual(
+                    mock_maintenance_instance.show_status.call_count, 2)
 
     @patch('builtins.input')
     @patch('sys.stdout', new_callable=StringIO)
@@ -86,23 +86,24 @@ class TestTUI(unittest.TestCase):
         test_url = "https://www.youtube.com/watch?v=test"
         # Set up mock input: add URL, then exit
         mock_input.side_effect = ['5', test_url, '6']
-        
+
         with patch('yt_dl_manager.tui.DatabaseUtils') as mock_db_utils:
             mock_db_instance = MagicMock()
             mock_db_instance.db_path = self.db_path
-            mock_db_instance.add_url.return_value = (True, f"URL added to queue: {test_url}", 1)
+            mock_db_instance.add_url.return_value = (
+                True, f"URL added to queue: {test_url}", 1)
             mock_db_utils.return_value = mock_db_instance
-            
+
             with patch('yt_dl_manager.tui.MaintenanceCommands') as mock_maintenance:
                 mock_maintenance_instance = MagicMock()
                 mock_maintenance.return_value = mock_maintenance_instance
-                
+
                 # Run TUI
                 tui_main()
-                
+
                 # Verify add_url was called with test URL
                 mock_db_instance.add_url.assert_called_once_with(test_url)
-                
+
                 # Check output shows success
                 output = mock_stdout.getvalue()
                 self.assertIn("✓", output)
@@ -113,27 +114,28 @@ class TestTUI(unittest.TestCase):
         """Test that TUI list commands work."""
         # Test pending, failed, downloaded lists, then exit
         mock_input.side_effect = ['2', '3', '4', '6']
-        
+
         with patch('yt_dl_manager.tui.DatabaseUtils') as mock_db_utils:
             mock_db_instance = MagicMock()
             mock_db_instance.db_path = self.db_path
             mock_db_utils.return_value = mock_db_instance
-            
+
             with patch('yt_dl_manager.tui.MaintenanceCommands') as mock_maintenance:
                 mock_maintenance_instance = MagicMock()
                 mock_maintenance_instance.list_downloads.return_value = []
                 mock_maintenance.return_value = mock_maintenance_instance
-                
+
                 # Run TUI
                 tui_main()
-                
+
                 # Verify list_downloads was called for each status
                 expected_calls = [
                     unittest.mock.call(status='pending', limit=10),
                     unittest.mock.call(status='failed', limit=10),
                     unittest.mock.call(status='downloaded', limit=10)
                 ]
-                mock_maintenance_instance.list_downloads.assert_has_calls(expected_calls)
+                mock_maintenance_instance.list_downloads.assert_has_calls(
+                    expected_calls)
 
     @patch('builtins.input')
     @patch('sys.stdout', new_callable=StringIO)
@@ -141,19 +143,19 @@ class TestTUI(unittest.TestCase):
         """Test that TUI handles keyboard interrupt gracefully."""
         # Simulate keyboard interrupt
         mock_input.side_effect = KeyboardInterrupt()
-        
+
         with patch('yt_dl_manager.tui.DatabaseUtils') as mock_db_utils:
             mock_db_instance = MagicMock()
             mock_db_instance.db_path = self.db_path
             mock_db_utils.return_value = mock_db_instance
-            
+
             with patch('yt_dl_manager.tui.MaintenanceCommands') as mock_maintenance:
                 mock_maintenance_instance = MagicMock()
                 mock_maintenance.return_value = mock_maintenance_instance
-                
+
                 # Run TUI (should not raise exception)
                 tui_main()
-                
+
                 # Check that goodbye message was printed
                 output = mock_stdout.getvalue()
                 self.assertIn("Goodbye!", output)
@@ -164,19 +166,19 @@ class TestTUI(unittest.TestCase):
         """Test that TUI handles invalid menu choices."""
         # Invalid choice, then exit
         mock_input.side_effect = ['9', '6']
-        
+
         with patch('yt_dl_manager.tui.DatabaseUtils') as mock_db_utils:
             mock_db_instance = MagicMock()
             mock_db_instance.db_path = self.db_path
             mock_db_utils.return_value = mock_db_instance
-            
+
             with patch('yt_dl_manager.tui.MaintenanceCommands') as mock_maintenance:
                 mock_maintenance_instance = MagicMock()
                 mock_maintenance.return_value = mock_maintenance_instance
-                
+
                 # Run TUI
                 tui_main()
-                
+
                 # Check that invalid choice message was shown
                 output = mock_stdout.getvalue()
                 self.assertIn("Invalid choice", output)
