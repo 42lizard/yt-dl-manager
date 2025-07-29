@@ -61,17 +61,17 @@ class URLInputModal(ModalScreen):
         try:
             success, message, _ = self.app_ref.queue.add_url(url)
             if success:
-                self.app_ref.post_message_no_wait(
+                self.app_ref.post_message(
                     TUIApp.StatusUpdate(f"✓ Added: {url}")
                 )
             else:
-                self.app_ref.post_message_no_wait(
+                self.app_ref.post_message(
                     TUIApp.StatusUpdate(f"⚠ {message}")
                 )
             # Refresh the data after adding URL
-            self.app_ref.post_message_no_wait(TUIApp.RefreshData())
+            self.app_ref.post_message(TUIApp.RefreshData())
         except (ValueError, RuntimeError) as e:
-            self.app_ref.post_message_no_wait(
+            self.app_ref.post_message(
                 TUIApp.StatusUpdate(f"✗ Error: {str(e)}")
             )
 

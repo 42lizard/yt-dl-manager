@@ -189,7 +189,7 @@ class TestURLInputModal(unittest.TestCase):
 
         mock_queue.add_url.assert_called_once_with("https://example.com/video")
         # Verify messages were posted
-        self.assertEqual(self.mock_app.post_message_no_wait.call_count, 2)
+        self.assertEqual(self.mock_app.post_message.call_count, 2)
 
     @patch('yt_dl_manager.tui.Queue')
     def test_add_url_failure(self, _):
@@ -213,7 +213,7 @@ class TestURLInputModal(unittest.TestCase):
         mock_queue.add_url.assert_called_once_with(
             "https://example.com/duplicate")
         # Should post warning message and refresh
-        self.assertEqual(self.mock_app.post_message_no_wait.call_count, 2)
+        self.assertEqual(self.mock_app.post_message.call_count, 2)
 
     def test_add_url_exception(self):
         """Test URL addition with exception."""
@@ -235,7 +235,7 @@ class TestURLInputModal(unittest.TestCase):
 
         mock_queue.add_url.assert_called_once_with("invalid-url")
         # Should post error message
-        self.mock_app.post_message_no_wait.assert_called_once()
+        self.mock_app.post_message.assert_called_once()
 
 
 if __name__ == '__main__':
