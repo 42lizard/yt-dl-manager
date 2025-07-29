@@ -199,3 +199,14 @@ pylint yt_dl_manager
 - Full file path display in completed downloads table for better file management
 - Comprehensive test coverage with 11 unit tests for TUI functionality
 - Cross-platform compatibility (Linux, macOS, Windows)
+
+**Pip Installable Package**: Converted project to a proper Python package:
+- Created `pyproject.toml` with modern packaging configuration
+- Added package metadata, dependencies, and console script entry points
+- Updated `__init__.py` with version information and package metadata
+- Created `MANIFEST.in` for proper file inclusion in distributions
+- Console script `yt-dl-manager` provides direct command access
+- Both source distribution (`.tar.gz`) and wheel (`.whl`) packages generated
+- Compatible with PyPI publishing standards
+- Updated documentation with pip installation instructions
+- All existing functionality preserved with improved accessibility
