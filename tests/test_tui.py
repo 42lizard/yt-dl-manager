@@ -47,7 +47,9 @@ class TestTUIApp(unittest.TestCase):
     def test_refresh_pending_downloads_empty(self, mock_queue_class):
         """Test refreshing pending downloads when queue is empty."""
         mock_queue = Mock()
-        mock_queue.get_pending.return_value = []
+        mock_db = Mock()
+        mock_db.get_downloads_by_status.return_value = []
+        mock_queue.db = mock_db
         mock_queue_class.return_value = mock_queue
 
         app = TUIApp()
@@ -67,12 +69,17 @@ class TestTUIApp(unittest.TestCase):
             loop.close()
 
         mock_table.clear.assert_called_once()
-        mock_queue.get_pending.assert_called_once()
+        mock_db.get_downloads_by_status.assert_called_once_with(
+            'pending',
+            sort_by='timestamp_requested',
+            order='DESC'
+        )
 
     @patch('yt_dl_manager.tui.Queue')
     def test_refresh_pending_downloads_with_data(self, mock_queue_class):
         """Test refreshing pending downloads with data."""
         mock_queue = Mock()
+        mock_db = Mock()
         test_download = {
             'id': 1,
             'url': 'https://example.com/video',
@@ -80,7 +87,8 @@ class TestTUIApp(unittest.TestCase):
             'timestamp_requested': '2023-01-01T12:00:00',
             'retries': 0
         }
-        mock_queue.get_pending.return_value = [test_download]
+        mock_db.get_downloads_by_status.return_value = [test_download]
+        mock_queue.db = mock_db
         mock_queue_class.return_value = mock_queue
 
         app = TUIApp()

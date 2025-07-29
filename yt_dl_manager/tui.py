@@ -195,7 +195,12 @@ class TUIApp(App):
         pending_table.clear()
 
         try:
-            pending_downloads = self.queue.get_pending()
+            # Get pending downloads with full information
+            pending_downloads = self.queue.db.get_downloads_by_status(
+                'pending',
+                sort_by='timestamp_requested',
+                order='DESC'
+            )
             for download in pending_downloads:
                 # Format timestamp
                 requested = download.get('timestamp_requested', '')
