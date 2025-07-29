@@ -9,6 +9,7 @@ from .create_config import create_default_config
 from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
 from .maintenance import MaintenanceCommands
+from .tui import main as tui_main
 
 
 def setup_argument_parser():
@@ -37,6 +38,12 @@ def setup_argument_parser():
     add_parser.add_argument(
         "-d", "--download", action="store_true",
         help="Immediately start the download after adding to the queue.")
+
+    # tui command
+    tui_parser = subparsers.add_parser("tui", help="Launch the Terminal User Interface.")
+    tui_parser.add_argument(
+        "--recent-limit", type=int, default=10,
+        help="Number of recent completed downloads to show (default: 10).")
 
     _setup_maintenance_commands(subparsers)
     return parser
@@ -148,30 +155,26 @@ def main():
     parser = setup_argument_parser()
     args = parser.parse_args()
 
-    if args.command == "init":
-        create_default_config(force=args.force)
-    elif args.command == "daemon":
-        daemon_main()
-    elif args.command == "add":
-        add_to_queue_main(args)
-    elif args.command == "list":
-        handle_list_command(args)
-    elif args.command == "status":
-        handle_status_command()
-    elif args.command == "remove":
-        handle_remove_command(args)
-    elif args.command == "retry":
-        handle_retry_command(args)
-    elif args.command == "verify":
-        handle_verify_command(args)
-    elif args.command == "redownload":
-        handle_redownload_command(args)
-    elif args.command == "cleanup":
-        handle_cleanup_command(args)
-    elif args.command == "export":
-        handle_export_command(args)
-    # display help if no command is provided
+    # Command dispatch mapping
+    command_handlers = {
+        "init": lambda a: create_default_config(force=a.force),
+        "daemon": lambda a: daemon_main(),
+        "add": add_to_queue_main,
+        "tui": lambda a: tui_main(recent_limit=a.recent_limit),
+        "list": handle_list_command,
+        "status": lambda a: handle_status_command(),
+        "remove": handle_remove_command,
+        "retry": handle_retry_command,
+        "verify": handle_verify_command,
+        "redownload": handle_redownload_command,
+        "cleanup": handle_cleanup_command,
+        "export": handle_export_command,
+    }
+
+    if args.command in command_handlers:
+        command_handlers[args.command](args)
     else:
+        # display help if no command is provided
         parser.print_help()
 
 
