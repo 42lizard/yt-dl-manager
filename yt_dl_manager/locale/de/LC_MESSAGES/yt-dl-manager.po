@@ -1,0 +1,173 @@
+# German translations for yt-dl-manager
+# Copyright (C) 2024 yt-dl-manager
+# This file is distributed under the same license as the yt-dl-manager package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: yt-dl-manager\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: \n"
+"Language: de\n"
+"Language-Team: German\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Add a video to the queue."
+msgstr "Ein Video zur Warteschlange hinzufügen."
+
+msgid "Automatically mark missing files for redownload."
+msgstr "Fehlende Dateien automatisch zum erneuten Download markieren."
+
+msgid "Config file already exists at: {}\\nUse --force to overwrite."
+msgstr "Konfigurationsdatei existiert bereits unter: {}\\nVerwenden Sie --force zum Überschreiben."
+
+msgid "Create default config file."
+msgstr "Standard-Konfigurationsdatei erstellen."
+
+msgid "Database IDs or URL patterns to redownload."
+msgstr "Datenbank-IDs oder URL-Muster zum erneuten Download."
+
+msgid "Database IDs or URL patterns to remove."
+msgstr "Datenbank-IDs oder URL-Muster zum Entfernen."
+
+msgid "Database IDs or URL patterns to retry."
+msgstr "Datenbank-IDs oder URL-Muster zum Wiederholen."
+
+msgid "Default configuration created at: {}"
+msgstr "Standard-Konfiguration erstellt unter: {}"
+
+msgid "Error: Must specify language action (set, show)"
+msgstr "Fehler: Sprachaktion muss angegeben werden (set, show)"
+
+msgid "Error: Must specify list type (pending, failed, downloaded)"
+msgstr "Fehler: Listentyp muss angegeben werden (pending, failed, downloaded)"
+
+msgid "Export format."
+msgstr "Exportformat."
+
+msgid "Export queue data."
+msgstr "Warteschlangen-Daten exportieren."
+
+msgid "Filter by extractor type."
+msgstr "Nach Extractor-Typ filtern."
+
+msgid "Filter by retry count."
+msgstr "Nach Wiederholungsanzahl filtern."
+
+msgid "Filter by status."
+msgstr "Nach Status filtern."
+
+msgid "Force overwrite of existing config file."
+msgstr "Überschreiben der vorhandenen Konfigurationsdatei erzwingen."
+
+msgid "Immediately start the download after adding to the queue."
+msgstr "Download sofort nach Hinzufügen zur Warteschlange starten."
+
+msgid "Language code or 'auto' for automatic detection."
+msgstr "Sprachcode oder 'auto' für automatische Erkennung."
+
+msgid "Language preference set to automatic detection."
+msgstr "Spracheinstellung auf automatische Erkennung gesetzt."
+
+msgid "Language preference set to: {}"
+msgstr "Spracheinstellung gesetzt auf: {}"
+
+msgid "Language preference: automatic (currently: {})"
+msgstr "Spracheinstellung: automatisch (aktuell: {})"
+
+msgid "Language preference: {} (currently: {})"
+msgstr "Spracheinstellung: {} (aktuell: {})"
+
+msgid "Launch the Terminal User Interface."
+msgstr "Terminal-Benutzeroberfläche starten."
+
+msgid "List downloaded items."
+msgstr "Heruntergeladene Elemente auflisten."
+
+msgid "List downloads by status."
+msgstr "Downloads nach Status auflisten."
+
+msgid "List failed downloads."
+msgstr "Fehlgeschlagene Downloads auflisten."
+
+msgid "List pending downloads."
+msgstr "Ausstehende Downloads auflisten."
+
+msgid "Manage language settings."
+msgstr "Spracheinstellungen verwalten."
+
+msgid "Mark items for redownload."
+msgstr "Elemente für erneuten Download markieren."
+
+msgid "Maximum number of results."
+msgstr "Maximale Anzahl von Ergebnissen."
+
+msgid "Number of recent completed downloads to show (default: 10)."
+msgstr "Anzahl der anzuzeigenden kürzlich abgeschlossenen Downloads (Standard: 10)."
+
+msgid "Only remove items older than DAYS."
+msgstr "Nur Elemente entfernen, die älter als TAGE sind."
+
+msgid "Only show items with missing files."
+msgstr "Nur Elemente mit fehlenden Dateien anzeigen."
+
+msgid "Output file path."
+msgstr "Ausgabedateipfad."
+
+msgid "Perform database maintenance."
+msgstr "Datenbankwartung durchführen."
+
+msgid "Preview cleanup actions."
+msgstr "Bereinigungsaktionen in der Vorschau anzeigen."
+
+msgid "Preview what would be removed."
+msgstr "Vorschau dessen, was entfernt würde."
+
+msgid "Remove database entries for missing files."
+msgstr "Datenbankeinträge für fehlende Dateien entfernen."
+
+msgid "Remove failed downloads."
+msgstr "Fehlgeschlagene Downloads entfernen."
+
+msgid "Remove items from queue."
+msgstr "Elemente aus der Warteschlange entfernen."
+
+msgid "Remove specific items."
+msgstr "Bestimmte Elemente entfernen."
+
+msgid "Restart the application for changes to take effect."
+msgstr "Starten Sie die Anwendung neu, damit die Änderungen wirksam werden."
+
+msgid "Retry all failed downloads."
+msgstr "Alle fehlgeschlagenen Downloads wiederholen."
+
+msgid "Retry failed or completed downloads."
+msgstr "Fehlgeschlagene oder abgeschlossene Downloads wiederholen."
+
+msgid "Run the download daemon."
+msgstr "Download-Daemon ausführen."
+
+msgid "Set language preference."
+msgstr "Spracheinstellung festlegen."
+
+msgid "Show current language setting."
+msgstr "Aktuelle Spracheinstellung anzeigen."
+
+msgid "Show queue status dashboard."
+msgstr "Warteschlangen-Status-Dashboard anzeigen."
+
+msgid "Sort by field."
+msgstr "Nach Feld sortieren."
+
+msgid "The URL of the video to download."
+msgstr "Die URL des herunterzuladenden Videos."
+
+msgid "Verify downloaded files exist."
+msgstr "Überprüfen, ob heruntergeladene Dateien vorhanden sind."
+
+msgid "yt-dl-manager: A tool for managing youtube-dl downloads."
+msgstr "yt-dl-manager: Ein Tool zur Verwaltung von youtube-dl Downloads."
