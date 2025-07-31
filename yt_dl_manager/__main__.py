@@ -10,40 +10,61 @@ from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
 from .maintenance import MaintenanceCommands
 from .tui import main as tui_main
+from .config import get_language_preference, set_language_preference
+from .i18n import _, setup_translation, get_available_languages
 
 
 def setup_argument_parser():
     """Set up and return the argument parser with all subcommands."""
     parser = argparse.ArgumentParser(
-        description="yt-dl-manager: A tool for managing youtube-dl downloads."
+        description=_(
+            "yt-dl-manager: A tool for managing youtube-dl downloads.")
     )
     subparsers = parser.add_subparsers(dest="command")
 
     # init command
     init_parser = subparsers.add_parser(
-        "init", help="Create default config file.")
+        "init", help=_("Create default config file."))
     init_parser.add_argument(
         "-f",
         "--force",
         action="store_true",
-        help="Force overwrite of existing config file.")
+        help=_("Force overwrite of existing config file."))
 
     # daemon command
-    subparsers.add_parser("daemon", help="Run the download daemon.")
+    subparsers.add_parser("daemon", help=_("Run the download daemon."))
 
     # add command
-    add_parser = subparsers.add_parser("add", help="Add a video to the queue.")
+    add_parser = subparsers.add_parser(
+        "add", help=_("Add a video to the queue."))
     add_parser.add_argument(
-        "url", type=str, help="The URL of the video to download.")
+        "url", type=str, help=_("The URL of the video to download."))
     add_parser.add_argument(
         "-d", "--download", action="store_true",
-        help="Immediately start the download after adding to the queue.")
+        help=_("Immediately start the download after adding to the queue."))
 
     # tui command
-    tui_parser = subparsers.add_parser("tui", help="Launch the Terminal User Interface.")
+    tui_parser = subparsers.add_parser(
+        "tui", help=_("Launch the Terminal User Interface."))
     tui_parser.add_argument(
         "--recent-limit", type=int, default=10,
-        help="Number of recent completed downloads to show (default: 10).")
+        help=_("Number of recent completed downloads to show (default: 10)."))
+
+    # language command
+    lang_parser = subparsers.add_parser(
+        "language", help=_("Manage language settings."))
+    lang_subparsers = lang_parser.add_subparsers(dest="lang_action")
+
+    # language set
+    set_parser = lang_subparsers.add_parser(
+        "set", help=_("Set language preference."))
+    set_parser.add_argument(
+        "language", choices=get_available_languages() + ['auto'],
+        help=_("Language code or 'auto' for automatic detection."))
+
+    # language show
+    lang_subparsers.add_parser("show", help=_(
+        "Show current language setting."))
 
     _setup_maintenance_commands(subparsers)
     return parser
@@ -53,97 +74,102 @@ def _setup_maintenance_commands(subparsers):
     """Set up maintenance-related subcommands."""
     # list command
     list_parser = subparsers.add_parser(
-        "list", help="List downloads by status.")
+        "list", help=_("List downloads by status."))
     list_subparsers = list_parser.add_subparsers(dest="list_type")
 
     # list pending
     pending_parser = list_subparsers.add_parser(
-        "pending", help="List pending downloads.")
+        "pending", help=_("List pending downloads."))
     pending_parser.add_argument(
-        "--limit", type=int, help="Maximum number of results.")
+        "--limit", type=int, help=_("Maximum number of results."))
     pending_parser.add_argument("--sort-by", choices=['date', 'retries', 'url'],
-                                default='date', help="Sort by field.")
+                                default='date', help=_("Sort by field."))
 
     # list failed
     failed_parser = list_subparsers.add_parser(
-        "failed", help="List failed downloads.")
+        "failed", help=_("List failed downloads."))
     failed_parser.add_argument(
-        "--limit", type=int, help="Maximum number of results.")
+        "--limit", type=int, help=_("Maximum number of results."))
     failed_parser.add_argument(
-        "--retry-count", type=int, help="Filter by retry count.")
+        "--retry-count", type=int, help=_("Filter by retry count."))
 
     # list downloaded
     downloaded_parser = list_subparsers.add_parser(
-        "downloaded", help="List downloaded items.")
+        "downloaded", help=_("List downloaded items."))
     downloaded_parser.add_argument(
-        "--limit", type=int, help="Maximum number of results.")
+        "--limit", type=int, help=_("Maximum number of results."))
     downloaded_parser.add_argument("--missing-files", action="store_true",
-                                   help="Only show items with missing files.")
+                                   help=_("Only show items with missing files."))
     downloaded_parser.add_argument(
-        "--extractor", help="Filter by extractor type.")
+        "--extractor", help=_("Filter by extractor type."))
 
     # status command
-    subparsers.add_parser("status", help="Show queue status dashboard.")
+    subparsers.add_parser("status", help=_("Show queue status dashboard."))
 
     # remove command
     remove_parser = subparsers.add_parser(
-        "remove", help="Remove items from queue.")
+        "remove", help=_("Remove items from queue."))
     remove_subparsers = remove_parser.add_subparsers(dest="remove_type")
 
     # remove failed
     remove_failed_parser = remove_subparsers.add_parser(
-        "failed", help="Remove failed downloads.")
+        "failed", help=_("Remove failed downloads."))
     remove_failed_parser.add_argument("--older-than", type=int, metavar="DAYS",
-                                      help="Only remove items older than DAYS.")
+                                      help=_("Only remove items older than DAYS."))
     remove_failed_parser.add_argument("--dry-run", action="store_true",
-                                      help="Preview what would be removed.")
+                                      help=_("Preview what would be removed."))
 
     # remove by ID or URL
     remove_items_parser = remove_subparsers.add_parser(
-        "items", help="Remove specific items.")
+        "items", help=_("Remove specific items."))
     remove_items_parser.add_argument("targets", nargs="+",
-                                     help="Database IDs or URL patterns to remove.")
+                                     help=_("Database IDs or URL patterns to remove."))
     remove_items_parser.add_argument("--dry-run", action="store_true",
-                                     help="Preview what would be removed.")
+                                     help=_("Preview what would be removed."))
 
     # retry command
     retry_parser = subparsers.add_parser(
-        "retry", help="Retry failed or completed downloads.")
+        "retry", help=_("Retry failed or completed downloads."))
     retry_parser.add_argument("targets", nargs="*",
-                              help="Database IDs or URL patterns to retry.")
+                              help=_("Database IDs or URL patterns to retry."))
     retry_parser.add_argument("--failed", action="store_true",
-                              help="Retry all failed downloads.")
+                              help=_("Retry all failed downloads."))
 
     # verify command
     verify_parser = subparsers.add_parser(
-        "verify", help="Verify downloaded files exist.")
+        "verify", help=_("Verify downloaded files exist."))
     verify_parser.add_argument("--fix", action="store_true",
-                               help="Automatically mark missing files for redownload.")
+                               help=_("Automatically mark missing files for redownload."))
     verify_parser.add_argument("--delete-records", action="store_true",
-                               help="Remove database entries for missing files.")
+                               help=_("Remove database entries for missing files."))
 
     # redownload command
     redownload_parser = subparsers.add_parser(
-        "redownload", help="Mark items for redownload.")
+        "redownload", help=_("Mark items for redownload."))
     redownload_parser.add_argument("targets", nargs="+",
-                                   help="Database IDs or URL patterns to redownload.")
+                                   help=_("Database IDs or URL patterns to redownload."))
 
     # cleanup command
     cleanup_parser = subparsers.add_parser(
-        "cleanup", help="Perform database maintenance.")
+        "cleanup", help=_("Perform database maintenance."))
     cleanup_parser.add_argument("--dry-run", action="store_true",
-                                help="Preview cleanup actions.")
+                                help=_("Preview cleanup actions."))
 
     # export command
-    export_parser = subparsers.add_parser("export", help="Export queue data.")
+    export_parser = subparsers.add_parser(
+        "export", help=_("Export queue data."))
     export_parser.add_argument("--format", choices=['json', 'csv'], default='json',
-                               help="Export format.")
-    export_parser.add_argument("--status", help="Filter by status.")
-    export_parser.add_argument("--output", help="Output file path.")
+                               help=_("Export format."))
+    export_parser.add_argument("--status", help=_("Filter by status."))
+    export_parser.add_argument("--output", help=_("Output file path."))
 
 
 def main():
     """Main function for the CLI."""
+    # Initialize i18n with language preference from config
+    language_preference = get_language_preference()
+    setup_translation(language_preference)
+
     # Set up logging
     log_level = getattr(
         __import__('logging'),
@@ -161,6 +187,7 @@ def main():
         "daemon": lambda a: daemon_main(),
         "add": add_to_queue_main,
         "tui": lambda a: tui_main(recent_limit=a.recent_limit),
+        "language": handle_language_command,
         "list": handle_list_command,
         "status": lambda a: handle_status_command(),
         "remove": handle_remove_command,
@@ -176,6 +203,34 @@ def main():
     else:
         # display help if no command is provided
         parser.print_help()
+
+
+def handle_language_command(args):
+    """Handle language subcommands."""
+    from .i18n import get_current_language
+
+    if args.lang_action == "set":
+        if args.language == "auto":
+            set_language_preference(None)
+            print(_("Language preference set to automatic detection."))
+        else:
+            set_language_preference(args.language)
+            print(_("Language preference set to: {}").format(args.language))
+        print(_("Restart the application for changes to take effect."))
+
+    elif args.lang_action == "show":
+        current_lang = get_current_language()
+        pref = get_language_preference()
+        if pref is None:
+            print(_("Language preference: automatic (currently: {})").format(
+                current_lang))
+        else:
+            print(_("Language preference: {} (currently: {})").format(
+                pref, current_lang))
+
+    else:
+        print(_("Error: Must specify language action (set, show)"))
+        sys.exit(1)
 
 
 def _parse_targets(targets):
@@ -202,7 +257,7 @@ def _parse_targets(targets):
 def handle_list_command(args):
     """Handle list subcommands."""
     if not args.list_type:
-        print("Error: Must specify list type (pending, failed, downloaded)")
+        print(_("Error: Must specify list type (pending, failed, downloaded)"))
         sys.exit(1)
 
     maintenance = MaintenanceCommands()
