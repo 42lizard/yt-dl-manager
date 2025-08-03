@@ -171,3 +171,67 @@ msgstr "Überprüfen, ob heruntergeladene Dateien vorhanden sind."
 
 msgid "yt-dl-manager: A tool for managing youtube-dl downloads."
 msgstr "yt-dl-manager: Ein Tool zur Verwaltung von youtube-dl Downloads."
+
+# TUI (Terminal User Interface) strings
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Enter URL to download:"
+msgstr "URL zum Herunterladen eingeben:"
+
+msgid "Add to Queue"
+msgstr "Zur Warteschlange hinzufügen"
+
+msgid "✓ Added: {}"
+msgstr "✓ Hinzugefügt: {}"
+
+msgid "⚠ {}"
+msgstr "⚠ {}"
+
+msgid "✗ Error: {}"
+msgstr "✗ Fehler: {}"
+
+msgid "yt-dl-manager TUI"
+msgstr "yt-dl-manager TUI"
+
+msgid "Terminal User Interface for YouTube Download Manager"
+msgstr "Terminal-Benutzeroberfläche für YouTube Download Manager"
+
+msgid "Add URL"
+msgstr "URL hinzufügen"
+
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+msgid "Quit"
+msgstr "Beenden"
+
+msgid "📥 Pending Downloads"
+msgstr "📥 Ausstehende Downloads"
+
+msgid "✅ Recent Completed Downloads (last {})"
+msgstr "✅ Kürzlich abgeschlossene Downloads (letzte {})"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Requested"
+msgstr "Angefordert"
+
+msgid "Retries"
+msgstr "Wiederholungen"
+
+msgid "Downloaded"
+msgstr "Heruntergeladen"
+
+msgid "File"
+msgstr "Datei"
+
+msgid "🔄 Data refreshed"
+msgstr "🔄 Daten aktualisiert"
