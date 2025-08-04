@@ -16,15 +16,14 @@ from .i18n import _ as gettext
 class URLInputModal(ModalScreen):
     """Modal screen for entering new URLs."""
 
-    # Static bindings - will be updated in __init__
-    BINDINGS = []
-
     def __init__(self, app_ref):
         """Initialize the modal with reference to parent app."""
         super().__init__()
         self.app_ref = app_ref
-        # Update class bindings with translations
-        URLInputModal.BINDINGS = [
+
+    def get_bindings(self):
+        """Return dynamic bindings with translations."""
+        return [
             Binding("escape", "dismiss", gettext("Cancel")),
         ]
 
@@ -129,12 +128,6 @@ class TUIApp(App):
     # Will be overridden in __init__
     SUB_TITLE = "Terminal User Interface for YouTube Download Manager"
 
-    BINDINGS = [
-        Binding("a", "add_url", "Add URL"),  # Will be updated in __init__
-        Binding("r", "refresh", "Refresh"),  # Will be updated in __init__
-        Binding("q", "quit", "Quit"),  # Will be updated in __init__
-    ]
-
     class StatusUpdate(Message):
         """Message to update status display."""
 
@@ -162,8 +155,9 @@ class TUIApp(App):
         self.sub_title = gettext(
             "Terminal User Interface for YouTube Download Manager")
 
-        # Update class bindings with translations
-        TUIApp.BINDINGS = [
+    def get_bindings(self):
+        """Return dynamic bindings with translations."""
+        return [
             Binding("a", "add_url", gettext("Add URL")),
             Binding("r", "refresh", gettext("Refresh")),
             Binding("q", "quit", gettext("Quit")),
