@@ -10,28 +10,31 @@ from textual.message import Message
 from textual.binding import Binding
 
 from .queue import Queue
+from .i18n import _ as gettext
 
 
 class URLInputModal(ModalScreen):
     """Modal screen for entering new URLs."""
-
-    BINDINGS = [
-        Binding("escape", "dismiss", "Cancel"),
-    ]
 
     def __init__(self, app_ref):
         """Initialize the modal with reference to parent app."""
         super().__init__()
         self.app_ref = app_ref
 
+    def get_bindings(self):
+        """Return dynamic bindings with translations."""
+        return [
+            Binding("escape", "dismiss", gettext("Cancel")),
+        ]
+
     def compose(self) -> ComposeResult:
         """Compose the modal layout."""
         with Vertical(id="url-input-modal"):
-            yield Label("Enter URL to download:", id="url-label")
+            yield Label(gettext("Enter URL to download:"), id="url-label")
             yield Input(placeholder="https://...", id="url-input")
             with Horizontal(id="button-row"):
-                yield Button("Add to Queue", variant="primary", id="add-button")
-                yield Button("Cancel", variant="default", id="cancel-button")
+                yield Button(gettext("Add to Queue"), variant="primary", id="add-button")
+                yield Button(gettext("Cancel"), variant="default", id="cancel-button")
 
     async def on_mount(self) -> None:
         """Focus the input field when modal is mounted."""
@@ -61,17 +64,17 @@ class URLInputModal(ModalScreen):
             success, message, _ = self.app_ref.queue.add_url(url)
             if success:
                 self.app_ref.post_message(
-                    TUIApp.StatusUpdate(f"✓ Added: {url}")
+                    TUIApp.StatusUpdate(gettext("✓ Added: {}").format(url))
                 )
             else:
                 self.app_ref.post_message(
-                    TUIApp.StatusUpdate(f"⚠ {message}")
+                    TUIApp.StatusUpdate(gettext("⚠ {}").format(message))
                 )
             # Refresh the data after adding URL
             self.app_ref.post_message(TUIApp.RefreshData())
         except (ValueError, RuntimeError) as e:
             self.app_ref.post_message(
-                TUIApp.StatusUpdate(f"✗ Error: {str(e)}")
+                TUIApp.StatusUpdate(gettext("✗ Error: {}").format(str(e)))
             )
 
 
@@ -121,14 +124,9 @@ class TUIApp(App):
     }
     """
 
-    TITLE = "yt-dl-manager TUI"
+    TITLE = "yt-dl-manager TUI"  # Will be overridden in __init__
+    # Will be overridden in __init__
     SUB_TITLE = "Terminal User Interface for YouTube Download Manager"
-
-    BINDINGS = [
-        Binding("a", "add_url", "Add URL"),
-        Binding("r", "refresh", "Refresh"),
-        Binding("q", "quit", "Quit"),
-    ]
 
     class StatusUpdate(Message):
         """Message to update status display."""
@@ -152,6 +150,19 @@ class TUIApp(App):
         self.logger = logging.getLogger(__name__)
         self.status_message = ""
 
+        # Set translated title and subtitle
+        self.title = gettext("yt-dl-manager TUI")
+        self.sub_title = gettext(
+            "Terminal User Interface for YouTube Download Manager")
+
+    def get_bindings(self):
+        """Return dynamic bindings with translations."""
+        return [
+            Binding("a", "add_url", gettext("Add URL")),
+            Binding("r", "refresh", gettext("Refresh")),
+            Binding("q", "quit", gettext("Quit")),
+        ]
+
     def compose(self) -> ComposeResult:
         """Compose the main layout."""
         yield Header()
@@ -160,11 +171,13 @@ class TUIApp(App):
             yield Label(self.status_message, classes="status-message")
 
         with Vertical():
-            yield Label("📥 Pending Downloads", id="pending-label")
+            yield Label(gettext("📥 Pending Downloads"), id="pending-label")
             yield DataTable(id="pending-table")
 
-            yield Label(f"✅ Recent Completed Downloads (last {self.recent_limit})",
-                        id="completed-label")
+            yield Label(
+                gettext("✅ Recent Completed Downloads (last {})").format(
+                    self.recent_limit),
+                id="completed-label")
             yield DataTable(id="completed-table")
 
         yield Footer()
@@ -178,10 +191,12 @@ class TUIApp(App):
         """Set up the data tables with columns."""
         pending_table = self.query_one("#pending-table", DataTable)
         pending_table.add_columns(
-            "ID", "URL", "Status", "Requested", "Retries")
+            gettext("ID"), gettext("URL"), gettext("Status"),
+            gettext("Requested"), gettext("Retries"))
 
         completed_table = self.query_one("#completed-table", DataTable)
-        completed_table.add_columns("ID", "URL", "Downloaded", "File")
+        completed_table.add_columns(
+            gettext("ID"), gettext("URL"), gettext("Downloaded"), gettext("File"))
 
     async def refresh_data(self) -> None:
         """Refresh data in both tables."""
@@ -279,7 +294,7 @@ class TUIApp(App):
     async def action_refresh(self) -> None:
         """Manually refresh all data."""
         await self.refresh_data()
-        await self.show_status("🔄 Data refreshed")
+        await self.show_status(gettext("🔄 Data refreshed"))
 
     async def action_quit(self) -> None:
         """Quit the application."""

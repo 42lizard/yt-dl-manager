@@ -24,6 +24,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
 - 🖥️ **Terminal User Interface (TUI)** - Interactive keyboard-driven interface for queue management
+- 🌍 **Internationalization** - Full i18n support with English and German languages
 
 ## 🚀 Quick Start
 
@@ -272,6 +273,7 @@ The application automatically creates configuration files in user directories:
 [DEFAULT]
 target_folder = /Users/username/Downloads/yt-dl-manager
 database_path = /Users/username/Library/Application Support/yt-dl-manager/yt_dl_manager.db
+language = en
 ```
 
 *Note: Actual paths will vary by operating system. The application uses `platformdirs` to automatically determine the appropriate user directories for your OS.*
@@ -280,6 +282,35 @@ To customize, edit the config file or create a new default configuration:
 ```bash
 yt-dl-manager init
 ```
+
+### Language Settings
+
+yt-dl-manager supports multiple languages with automatic detection and manual override:
+
+**Available Languages:**
+- **English** (`en`) - Default
+- **German** (`de`) - Deutsch
+
+**Language Commands:**
+```bash
+# Show current language setting
+yt-dl-manager language show
+
+# Set language to German
+yt-dl-manager language set de
+
+# Set language to English
+yt-dl-manager language set en
+
+# Use automatic detection based on system locale
+yt-dl-manager language set auto
+```
+
+**Automatic Detection:**
+The application automatically detects your system locale and uses the appropriate language if supported. If your system language is not supported, it defaults to English.
+
+**Manual Override:**
+Language preferences are stored in your configuration file and persist across application restarts.
 
 ### Logging Configuration
 
@@ -330,7 +361,13 @@ yt-dl-manager/
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download_utils.py  # Shared download logic with yt-dlp integration
 │   ├── logging_config.py  # Centralized logging configuration
-│   └── tui.py             # Terminal User Interface with Textual
+│   ├── i18n.py            # Internationalization utilities with gettext
+│   ├── tui.py             # Terminal User Interface with Textual
+│   └── locale/            # Translation files
+│       └── de/            # German translations
+│           └── LC_MESSAGES/
+│               ├── yt-dl-manager.po  # German translation source
+│               └── yt-dl-manager.mo  # Compiled German translations
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (15 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
@@ -339,6 +376,7 @@ yt-dl-manager/
 │   ├── test_maintenance.py # Maintenance commands tests (33 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   ├── test_tui.py         # TUI tests (11 test cases)
+│   ├── test_i18n.py       # Internationalization tests (8 test cases)
 │   └── test_utils.py      # Test helpers
 ├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs, textual)
 ├── LICENSE                # ISC license
@@ -354,7 +392,8 @@ yt-dl-manager/
 - **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
-- **Quality Metrics**: 100% test pass rate (108/108), 10/10 pylint score, CI/CD pipeline
+- **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
+- **Quality Metrics**: 100% test pass rate (116/116), 9.99/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`
