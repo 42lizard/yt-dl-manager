@@ -12,7 +12,6 @@ from typing import Optional, List
 
 # Global variables for translation
 _current_translation = None  # pylint: disable=invalid-name
-_available_languages = ['en', 'de']
 
 
 def get_locale_dir() -> Path:
@@ -21,15 +20,30 @@ def get_locale_dir() -> Path:
 
 
 def get_available_languages() -> List[str]:
-    """Get list of available language codes."""
-    return _available_languages.copy()
+    """Get list of available language codes by scanning locale directory."""
+    locale_dir = get_locale_dir()
+    available_langs = ['en']  # English is always available (default/source language)
+
+    if not locale_dir.exists():
+        return available_langs
+
+    # Scan for language directories with translation files
+    for lang_dir in locale_dir.iterdir():
+        if lang_dir.is_dir() and lang_dir.name != 'en':
+            mo_file = lang_dir / 'LC_MESSAGES' / 'yt-dl-manager.mo'
+            po_file = lang_dir / 'LC_MESSAGES' / 'yt-dl-manager.po'
+            # Check if either .mo or .po file exists
+            if mo_file.exists() or po_file.exists():
+                available_langs.append(lang_dir.name)
+
+    return sorted(available_langs)
 
 
 def detect_system_locale() -> str:
     """Detect system locale and return supported language code.
 
     Returns:
-        Language code ('en' or 'de'), defaults to 'en' if unsupported.
+        Language code from available languages, defaults to 'en' if unsupported.
     """
     try:
         # Get system locale
@@ -41,7 +55,7 @@ def detect_system_locale() -> str:
         if system_locale:
             # Extract language code (first 2 characters)
             lang_code = system_locale.lower()[:2]
-            if lang_code in _available_languages:
+            if lang_code in get_available_languages():
                 return lang_code
     except (locale.Error, AttributeError, TypeError):
         pass
@@ -54,13 +68,13 @@ def setup_translation(language: Optional[str] = None) -> None:
     """Set up translation for the specified language.
 
     Args:
-        language: Language code ('en', 'de'), or None for auto-detection.
+        language: Language code from available languages, or None for auto-detection.
     """
     global _current_translation  # pylint: disable=global-statement
 
     if language is None:
         language = detect_system_locale()
-    elif language not in _available_languages:
+    elif language not in get_available_languages():
         language = 'en'
 
     locale_dir = get_locale_dir()
@@ -118,7 +132,7 @@ def get_current_language() -> str:
     """Get the current language code being used.
 
     Returns:
-        Current language code ('en' or 'de').
+        Current language code from available languages.
     """
     if _current_translation is None:
         return detect_system_locale()
@@ -126,8 +140,12 @@ def get_current_language() -> str:
     # Check if we have an actual translation loaded
     if (hasattr(_current_translation, '_catalog') and
             _current_translation._catalog):  # pylint: disable=protected-access
-        # We have an actual translation loaded
-        return 'de'  # Currently only German is loaded from files
+        # We have an actual translation loaded, determine which one
+        available_langs = get_available_languages()
+        # Return first non-English language if we have a catalog
+        for lang in available_langs:
+            if lang != 'en':
+                return lang
     return 'en'
 
 
