@@ -8,7 +8,7 @@ import gettext
 import locale
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 # Global variables for translation
 _current_translation = None  # pylint: disable=invalid-name
@@ -20,7 +20,7 @@ def get_locale_dir() -> Path:
     return Path(__file__).parent / 'locale'
 
 
-def get_available_languages() -> list[str]:
+def get_available_languages() -> List[str]:
     """Get list of available language codes."""
     return _available_languages.copy()
 
