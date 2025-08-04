@@ -10,8 +10,101 @@ import os
 from pathlib import Path
 from typing import Optional, List
 
-# Global variables for translation
-_current_translation = None  # pylint: disable=invalid-name
+
+class TranslationManager:
+    """Manages translation state and operations."""
+
+    def __init__(self):
+        """Initialize translation manager."""
+        self.current_translation = None
+        self.current_language = None
+
+    def setup(self, language: Optional[str] = None) -> None:
+        """Set up translation for the specified language.
+
+        Args:
+            language: Language code from available languages, or None for auto-detection.
+        """
+        if language is None:
+            language = detect_system_locale()
+        elif language not in get_available_languages():
+            language = 'en'
+
+        self.current_language = language
+        locale_dir = get_locale_dir()
+
+        try:
+            if language == 'en':
+                # For English, use null translation (no .mo file needed)
+                self.current_translation = gettext.NullTranslations()
+            else:
+                # Load translation from .mo file
+                self.current_translation = gettext.translation(
+                    'yt-dl-manager',
+                    localedir=str(locale_dir),
+                    languages=[language],
+                    fallback=True
+                )
+        except (FileNotFoundError, OSError):
+            # Fallback to null translation if files not found
+            self.current_translation = gettext.NullTranslations()
+
+    def gettext(self, message: str) -> str:
+        """Translate a message using the current translation.
+
+        Args:
+            message: The message to translate.
+
+        Returns:
+            Translated message or original if no translation available.
+        """
+        if self.current_translation is None:
+            self.setup()
+
+        return self.current_translation.gettext(message)
+
+    def ngettext(self, singular: str, plural: str, n: int) -> str:
+        """Translate a message with plural forms.
+
+        Args:
+            singular: Singular form of the message.
+            plural: Plural form of the message.
+            n: Number to determine which form to use.
+
+        Returns:
+            Translated message in appropriate form.
+        """
+        if self.current_translation is None:
+            self.setup()
+
+        return self.current_translation.ngettext(singular, plural, n)
+
+    def get_current_language(self) -> str:
+        """Get the current language code being used.
+
+        Returns:
+            Current language code from available languages.
+        """
+        if self.current_language is not None:
+            return self.current_language
+
+        if self.current_translation is None:
+            return detect_system_locale()
+
+        # Check if we have an actual translation loaded by checking the domain
+        info = self.current_translation.info()
+        if info:
+            # We have translation info, check available languages to determine which one
+            available_langs = get_available_languages()
+            # Return first non-English language if we have translation info
+            for lang in available_langs:
+                if lang != 'en':
+                    return lang
+        return 'en'
+
+
+# Module-level translation manager instance
+translation_manager = TranslationManager()
 
 
 def get_locale_dir() -> Path:
@@ -22,7 +115,8 @@ def get_locale_dir() -> Path:
 def get_available_languages() -> List[str]:
     """Get list of available language codes by scanning locale directory."""
     locale_dir = get_locale_dir()
-    available_langs = ['en']  # English is always available (default/source language)
+    # English is always available (default/source language)
+    available_langs = ['en']
 
     if not locale_dir.exists():
         return available_langs
@@ -70,30 +164,7 @@ def setup_translation(language: Optional[str] = None) -> None:
     Args:
         language: Language code from available languages, or None for auto-detection.
     """
-    global _current_translation  # pylint: disable=global-statement
-
-    if language is None:
-        language = detect_system_locale()
-    elif language not in get_available_languages():
-        language = 'en'
-
-    locale_dir = get_locale_dir()
-
-    try:
-        if language == 'en':
-            # For English, use null translation (no .mo file needed)
-            _current_translation = gettext.NullTranslations()
-        else:
-            # Load translation from .mo file
-            _current_translation = gettext.translation(
-                'yt-dl-manager',
-                localedir=str(locale_dir),
-                languages=[language],
-                fallback=True
-            )
-    except (FileNotFoundError, OSError):
-        # Fallback to null translation if files not found
-        _current_translation = gettext.NullTranslations()
+    translation_manager.setup(language)
 
 
 def _(message: str) -> str:
@@ -105,10 +176,7 @@ def _(message: str) -> str:
     Returns:
         Translated message or original if no translation available.
     """
-    if _current_translation is None:
-        setup_translation()
-
-    return _current_translation.gettext(message)
+    return translation_manager.gettext(message)
 
 
 def ngettext(singular: str, plural: str, n: int) -> str:
@@ -122,10 +190,7 @@ def ngettext(singular: str, plural: str, n: int) -> str:
     Returns:
         Translated message in appropriate form.
     """
-    if _current_translation is None:
-        setup_translation()
-
-    return _current_translation.ngettext(singular, plural, n)
+    return translation_manager.ngettext(singular, plural, n)
 
 
 def get_current_language() -> str:
@@ -134,19 +199,7 @@ def get_current_language() -> str:
     Returns:
         Current language code from available languages.
     """
-    if _current_translation is None:
-        return detect_system_locale()
-
-    # Check if we have an actual translation loaded
-    if (hasattr(_current_translation, '_catalog') and
-            _current_translation._catalog):  # pylint: disable=protected-access
-        # We have an actual translation loaded, determine which one
-        available_langs = get_available_languages()
-        # Return first non-English language if we have a catalog
-        for lang in available_langs:
-            if lang != 'en':
-                return lang
-    return 'en'
+    return translation_manager.get_current_language()
 
 
 # Initialize translation on module import
