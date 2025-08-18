@@ -1,5 +1,6 @@
 """Database utility functions and schema management for yt-dl-manager."""
 
+import re
 import sqlite3
 import datetime
 import os
@@ -18,19 +19,18 @@ class DownloadStatus(Enum):
     FAILED = 'failed'
 
 
-import re
-
 def sanitize_filename(filename):
     """Sanitize filename to prevent path traversal and unsafe characters."""
-    import os
     filename = os.path.basename(filename)
     filename = re.sub(r'[^A-Za-z0-9._-]', '_', filename)
     return filename
+
 
 def is_valid_url(url):
     """Validate that the URL is a proper http(s) URL."""
     url_pattern = re.compile(r"^https?://[^\s]+$")
     return isinstance(url, str) and url_pattern.match(url.strip())
+
 
 def ensure_database_schema(db_path):
     """Create or verify the downloads table schema.
@@ -74,10 +74,10 @@ class DatabaseUtils:
 
     def _build_in_clause_placeholders(self, count):
         """Build a safe IN clause with the specified number of placeholders.
-        
+
         Args:
             count (int): Number of placeholders needed.
-            
+
         Returns:
             str: Safe placeholder string like "?,?,?"
         """
@@ -159,8 +159,7 @@ class DatabaseUtils:
             filename (str): The final filename of the downloaded file.
             extractor (str): The extractor used for the download.
         """
-        # Security: Sanitize filename before storing
-        filename = sanitize_filename(filename)
+        # Store the full filename path for file existence checks
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
@@ -248,8 +247,6 @@ class DatabaseUtils:
             if row:
                 row_id, filename, status = row
                 if filename:
-                    # Security: Sanitize filename before displaying
-                    filename = sanitize_filename(filename)
                     message = (
                         f"URL already exists in queue: {media_url}\n"
                         f"Status: {status}\nDownloaded file: {filename}"
@@ -449,13 +446,15 @@ class DatabaseUtils:
         placeholders = self._build_in_clause_placeholders(len(download_ids))
 
         # Use string concatenation instead of f-string for SQL
-        query = "SELECT COUNT(*) FROM downloads WHERE id IN (" + placeholders + ")"
+        query = "SELECT COUNT(*) FROM downloads WHERE id IN (" + \
+            placeholders + ")"
 
         cur.execute(query, download_ids)
         count = cur.fetchone()[0]
 
         if not dry_run and count > 0:
-            delete_query = "DELETE FROM downloads WHERE id IN (" + placeholders + ")"
+            delete_query = "DELETE FROM downloads WHERE id IN (" + \
+                placeholders + ")"
             cur.execute(delete_query, download_ids)
             conn.commit()
 
@@ -507,14 +506,14 @@ class DatabaseUtils:
 
         if reset_retries:
             query = ("UPDATE downloads "
-                    "SET status = ?, retries = 0, "
-                    "timestamp_downloaded = NULL, final_filename = NULL "
-                    "WHERE id IN (" + placeholders + ")")
+                     "SET status = ?, retries = 0, "
+                     "timestamp_downloaded = NULL, final_filename = NULL "
+                     "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
         else:
             query = ("UPDATE downloads "
-                    "SET status = ?, timestamp_downloaded = NULL, final_filename = NULL "
-                    "WHERE id IN (" + placeholders + ")")
+                     "SET status = ?, timestamp_downloaded = NULL, final_filename = NULL "
+                     "WHERE id IN (" + placeholders + ")")
             params = [DownloadStatus.PENDING.value] + download_ids
 
         cur.execute(query, params)

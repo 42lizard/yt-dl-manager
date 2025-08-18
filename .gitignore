@@ -32,3 +32,4 @@ downloads/
 # OS files
 .DS_Store
 Thumbs.db
+.aider*

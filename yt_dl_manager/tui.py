@@ -16,16 +16,14 @@ from .i18n import _ as gettext
 class URLInputModal(ModalScreen):
     """Modal screen for entering new URLs."""
 
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+    ]
+
     def __init__(self, app_ref):
         """Initialize the modal with reference to parent app."""
         super().__init__()
         self.app_ref = app_ref
-
-    def get_bindings(self):
-        """Return dynamic bindings with translations."""
-        return [
-            Binding("escape", "dismiss", gettext("Cancel")),
-        ]
 
     def compose(self) -> ComposeResult:
         """Compose the modal layout."""
@@ -128,6 +126,12 @@ class TUIApp(App):
     # Will be overridden in __init__
     SUB_TITLE = "Terminal User Interface for YouTube Download Manager"
 
+    BINDINGS = [
+        Binding("a", "add_url", "Add URL", show=True, priority=True),
+        Binding("r", "refresh", "Refresh", show=True, priority=True),
+        Binding("q", "quit", "Quit", show=True, priority=True),
+    ]
+
     class StatusUpdate(Message):
         """Message to update status display."""
 
@@ -155,14 +159,6 @@ class TUIApp(App):
         self.sub_title = gettext(
             "Terminal User Interface for YouTube Download Manager")
 
-    def get_bindings(self):
-        """Return dynamic bindings with translations."""
-        return [
-            Binding("a", "add_url", gettext("Add URL")),
-            Binding("r", "refresh", gettext("Refresh")),
-            Binding("q", "quit", gettext("Quit")),
-        ]
-
     def compose(self) -> ComposeResult:
         """Compose the main layout."""
         yield Header()
@@ -186,6 +182,8 @@ class TUIApp(App):
         """Initialize tables when app is mounted."""
         await self.setup_tables()
         await self.refresh_data()
+        # Ensure the app itself can receive key events
+        self.set_focus(None)
 
     async def setup_tables(self) -> None:
         """Set up the data tables with columns."""
@@ -194,9 +192,15 @@ class TUIApp(App):
             gettext("ID"), gettext("URL"), gettext("Status"),
             gettext("Requested"), gettext("Retries"))
 
+        # Make sure tables don't interfere with app-level key bindings
+        pending_table.can_focus = False
+
         completed_table = self.query_one("#completed-table", DataTable)
         completed_table.add_columns(
             gettext("ID"), gettext("URL"), gettext("Downloaded"), gettext("File"))
+
+        # Make sure tables don't interfere with app-level key bindings
+        completed_table.can_focus = False
 
     async def refresh_data(self) -> None:
         """Refresh data in both tables."""

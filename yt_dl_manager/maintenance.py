@@ -1,7 +1,7 @@
 """Database maintenance commands for yt-dl-manager."""
 
 import os
-from .db_utils import DatabaseUtils, DownloadStatus
+from .db_utils import DatabaseUtils, DownloadStatus, sanitize_filename
 
 
 class MaintenanceCommands:
@@ -43,6 +43,47 @@ class MaintenanceCommands:
             **filters
         )
 
+    def _format_display_text(self, text, max_length):
+        """Format text for table display with truncation."""
+        return text[:max_length-3] + '...' if len(text) > max_length else text
+
+    def _print_pending_downloads(self, downloads):
+        """Print pending downloads table."""
+        print(f"{'ID':<8} {'RETRIES':<8} {'REQUESTED':<20} {'URL':<40}")
+        print("-" * 80)
+        for download in downloads:
+            url_display = self._format_display_text(download['url'], 40)
+            timestamp = download['timestamp_requested']
+            requested = timestamp[:16] if timestamp else 'N/A'
+            print(f"{download['id']:<8} {download['retries']:<8} "
+                  f"{requested:<20} {url_display:<40}")
+
+    def _print_failed_downloads(self, downloads):
+        """Print failed downloads table."""
+        print(f"{'ID':<8} {'RETRIES':<8} {'EXTRACTOR':<12} {'URL':<40}")
+        print("-" * 80)
+        for download in downloads:
+            url_display = self._format_display_text(download['url'], 40)
+            extractor = download['extractor'] or 'N/A'
+            extractor_display = self._format_display_text(extractor, 12)
+            print(f"{download['id']:<8} {download['retries']:<8} "
+                  f"{extractor_display:<12} {url_display:<40}")
+
+    def _print_downloaded_files(self, downloads):
+        """Print downloaded files table."""
+        print(f"{'ID':<8} {'EXTRACTOR':<12} {'EXISTS':<7} {'FILENAME':<40}")
+        print("-" * 80)
+        for download in downloads:
+            filename = download['final_filename'] or 'N/A'
+            basename = sanitize_filename(filename)
+            filename_display = self._format_display_text(basename, 40)
+            file_exists = ('YES' if download['final_filename'] and
+                           os.path.exists(download['final_filename']) else 'NO')
+            extractor = download['extractor'] or 'N/A'
+            extractor_display = self._format_display_text(extractor, 12)
+            print(f"{download['id']:<8} {extractor_display:<12} "
+                  f"{file_exists:<7} {filename_display:<40}")
+
     def print_downloads_table(self, downloads, status):
         """Print downloads in a formatted table.
 
@@ -58,49 +99,11 @@ class MaintenanceCommands:
         print("-" * 80)
 
         if status == 'pending':
-            print(f"{'ID':<8} {'RETRIES':<8} {'REQUESTED':<20} {'URL':<40}")
-            print("-" * 80)
-            for download in downloads:
-                url = download['url']
-                url_display = url[:37] + '...' if len(url) > 40 else url
-                timestamp = download['timestamp_requested']
-                requested = timestamp[:16] if timestamp else 'N/A'
-                print(f"{download['id']:<8} {download['retries']:<8} "
-                      f"{requested:<20} {url_display:<40}")
-
+            self._print_pending_downloads(downloads)
         elif status == 'failed':
-            print(f"{'ID':<8} {'RETRIES':<8} {'EXTRACTOR':<12} {'URL':<40}")
-            print("-" * 80)
-            for download in downloads:
-                url = download['url']
-                url_display = url[:37] + '...' if len(url) > 40 else url
-                extractor = download['extractor'] or 'N/A'
-                extractor_display = extractor[:9] + \
-                    '...' if len(extractor) > 12 else extractor
-                print(f"{download['id']:<8} {download['retries']:<8} "
-                      f"{extractor_display:<12} {url_display:<40}")
-
+            self._print_failed_downloads(downloads)
         elif status == 'downloaded':
-            print(f"{'ID':<8} {'EXTRACTOR':<12} {'EXISTS':<7} {'FILENAME':<40}")
-            print("-" * 80)
-            for download in downloads:
-                filename = download['final_filename'] or 'N/A'
-                # Security: Sanitize filename before displaying
-                import re, os
-                def sanitize_filename(filename):
-                    filename = os.path.basename(filename)
-                    filename = re.sub(r'[^A-Za-z0-9._-]', '_', filename)
-                    return filename
-                basename = sanitize_filename(filename)
-                filename_display = basename[:37] + \
-                    '...' if len(basename) > 40 else basename
-                file_exists = ('YES' if download['final_filename'] and
-                               os.path.exists(download['final_filename']) else 'NO')
-                extractor = download['extractor'] or 'N/A'
-                extractor_display = extractor[:9] + \
-                    '...' if len(extractor) > 12 else extractor
-                print(f"{download['id']:<8} {extractor_display:<12} "
-                      f"{file_exists:<7} {filename_display:<40}")
+            self._print_downloaded_files(downloads)
 
         print("-" * 80)
 
