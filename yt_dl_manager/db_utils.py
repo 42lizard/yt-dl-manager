@@ -18,6 +18,20 @@ class DownloadStatus(Enum):
     FAILED = 'failed'
 
 
+import re
+
+def sanitize_filename(filename):
+    """Sanitize filename to prevent path traversal and unsafe characters."""
+    import os
+    filename = os.path.basename(filename)
+    filename = re.sub(r'[^A-Za-z0-9._-]', '_', filename)
+    return filename
+
+def is_valid_url(url):
+    """Validate that the URL is a proper http(s) URL."""
+    url_pattern = re.compile(r"^https?://[^\s]+$")
+    return isinstance(url, str) and url_pattern.match(url.strip())
+
 def ensure_database_schema(db_path):
     """Create or verify the downloads table schema.
     Args:
@@ -145,6 +159,8 @@ class DatabaseUtils:
             filename (str): The final filename of the downloaded file.
             extractor (str): The extractor used for the download.
         """
+        # Security: Sanitize filename before storing
+        filename = sanitize_filename(filename)
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(
@@ -204,6 +220,10 @@ class DatabaseUtils:
             tuple: (success, message, row_id) where success is bool,
             message is str, and row_id is int or None.
         """
+        # Security: Validate URL before inserting
+        if not is_valid_url(media_url):
+            return False, "Invalid URL. Only http(s) URLs are allowed.", None
+
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         try:
@@ -228,6 +248,8 @@ class DatabaseUtils:
             if row:
                 row_id, filename, status = row
                 if filename:
+                    # Security: Sanitize filename before displaying
+                    filename = sanitize_filename(filename)
                     message = (
                         f"URL already exists in queue: {media_url}\n"
                         f"Status: {status}\nDownloaded file: {filename}"

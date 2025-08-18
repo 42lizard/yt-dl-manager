@@ -85,7 +85,13 @@ class MaintenanceCommands:
             print("-" * 80)
             for download in downloads:
                 filename = download['final_filename'] or 'N/A'
-                basename = os.path.basename(filename)
+                # Security: Sanitize filename before displaying
+                import re, os
+                def sanitize_filename(filename):
+                    filename = os.path.basename(filename)
+                    filename = re.sub(r'[^A-Za-z0-9._-]', '_', filename)
+                    return filename
+                basename = sanitize_filename(filename)
                 filename_display = basename[:37] + \
                     '...' if len(basename) > 40 else basename
                 file_exists = ('YES' if download['final_filename'] and
