@@ -212,6 +212,9 @@ msgstr "📥 Ausstehende Downloads"
 msgid "✅ Recent Completed Downloads (last {})"
 msgstr "✅ Kürzlich abgeschlossene Downloads (letzte {})"
 
+msgid "⏳ In Progress"
+msgstr "⏳ In Bearbeitung"
+
 msgid "ID"
 msgstr "ID"
 

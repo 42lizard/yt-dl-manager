@@ -81,11 +81,15 @@ class TUIApp(App):
 
     CSS = """
     #pending-table {
-        height: 60%;
+        height: 33%;
     }
-    
+
+    #inprogress-table {
+        height: 33%;
+    }
+
     #completed-table {
-        height: 40%;
+        height: 34%;
     }
     
     #url-input-modal {
@@ -170,6 +174,9 @@ class TUIApp(App):
             yield Label(gettext("📥 Pending Downloads"), id="pending-label")
             yield DataTable(id="pending-table")
 
+            yield Label(gettext("⏳ In Progress"), id="inprogress-label")
+            yield DataTable(id="inprogress-table")
+
             yield Label(
                 gettext("✅ Recent Completed Downloads (last {})").format(
                     self.recent_limit),
@@ -182,6 +189,8 @@ class TUIApp(App):
         """Initialize tables when app is mounted."""
         await self.setup_tables()
         await self.refresh_data()
+        # Start periodic auto-refresh every 2 seconds
+        self.set_interval(2.0, self.refresh_data)
         # Ensure the app itself can receive key events
         self.set_focus(None)
 
@@ -195,6 +204,13 @@ class TUIApp(App):
         # Make sure tables don't interfere with app-level key bindings
         pending_table.can_focus = False
 
+        inprogress_table = self.query_one("#inprogress-table", DataTable)
+        inprogress_table.add_columns(
+            gettext("ID"), gettext("URL"), gettext("Status"),
+            gettext("Started"), gettext("Retries")
+        )
+        inprogress_table.can_focus = False
+
         completed_table = self.query_one("#completed-table", DataTable)
         completed_table.add_columns(
             gettext("ID"), gettext("URL"), gettext("Downloaded"), gettext("File"))
@@ -203,8 +219,9 @@ class TUIApp(App):
         completed_table.can_focus = False
 
     async def refresh_data(self) -> None:
-        """Refresh data in both tables."""
+        """Refresh data in all tables."""
         await self.refresh_pending_downloads()
+        await self.refresh_inprogress_downloads()
         await self.refresh_completed_downloads()
 
     async def refresh_pending_downloads(self) -> None:
@@ -243,6 +260,39 @@ class TUIApp(App):
                 )
         except (ValueError, RuntimeError) as e:
             self.logger.error("Error refreshing pending downloads: %s", str(e))
+
+    async def refresh_inprogress_downloads(self) -> None:
+        """Refresh the in-progress downloads table."""
+        inprogress_table = self.query_one("#inprogress-table", DataTable)
+        inprogress_table.clear()
+
+        try:
+            inprogress_downloads = self.queue.get_in_progress()
+            for download in inprogress_downloads:
+                # Format timestamp
+                started = download.get('timestamp_requested', '')
+                if started:
+                    try:
+                        dt = datetime.fromisoformat(
+                            started.replace('Z', '+00:00'))
+                        started = dt.strftime('%Y-%m-%d %H:%M')
+                    except (ValueError, AttributeError):
+                        started = str(started)[:16]
+
+                # Truncate long URLs for display
+                url = download.get('url', '')
+                display_url = url[:50] + '...' if len(url) > 50 else url
+
+                inprogress_table.add_row(
+                    str(download.get('id', '')),
+                    display_url,
+                    download.get('status', ''),
+                    started,
+                    str(download.get('retries', 0))
+                )
+        except (ValueError, RuntimeError) as e:
+            self.logger.error(
+                "Error refreshing in-progress downloads: %s", str(e))
 
     async def refresh_completed_downloads(self) -> None:
         """Refresh the completed downloads table."""

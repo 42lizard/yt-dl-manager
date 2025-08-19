@@ -86,6 +86,29 @@ class Queue:
                 "Failed to retrieve pending downloads: %s", str(e))
             raise
 
+    def get_in_progress(self):
+        """Get all downloads currently in progress (status = 'downloading').
+
+        Returns:
+            list: List of dicts for in-progress downloads.
+
+        Raises:
+            Exception: If database operation fails.
+        """
+        self.logger.debug("Retrieving in-progress downloads")
+        try:
+            in_progress = self.db.get_downloads_by_status(
+                'downloading',
+                sort_by='timestamp_requested',
+                order='DESC'
+            )
+            self.logger.debug("Found %d in-progress downloads", len(in_progress))
+            return in_progress
+        except Exception as e:
+            self.logger.error(
+                "Failed to retrieve in-progress downloads: %s", str(e))
+            raise
+
     def start_download(self, download_id):
         """Mark a download as 'downloading' in the queue.
 
