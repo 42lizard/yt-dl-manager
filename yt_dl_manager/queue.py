@@ -100,9 +100,10 @@ class Queue:
             in_progress = self.db.get_downloads_by_status(
                 'downloading',
                 sort_by='timestamp_requested',
-                order='DESC'
+                sort_order='DESC'
             )
-            self.logger.debug("Found %d in-progress downloads", len(in_progress))
+            self.logger.debug(
+                "Found %d in-progress downloads", len(in_progress))
             return in_progress
         except Exception as e:
             self.logger.error(

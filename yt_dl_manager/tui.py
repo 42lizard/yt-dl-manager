@@ -1,6 +1,7 @@
 """Textual-based Terminal User Interface for yt-dl-manager."""
 
 import logging
+import asyncio
 from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -8,8 +9,10 @@ from textual.widgets import DataTable, Header, Footer, Input, Label, Button
 from textual.screen import ModalScreen
 from textual.message import Message
 from textual.binding import Binding
+# from textual.widgets._data_table import RowKey
 
 from .queue import Queue
+from .download_utils import download_media
 from .i18n import _ as gettext
 
 
@@ -72,12 +75,19 @@ class URLInputModal(ModalScreen):
             self.app_ref.post_message(TUIApp.RefreshData())
         except (ValueError, RuntimeError) as e:
             self.app_ref.post_message(
-                TUIApp.StatusUpdate(gettext("✗ Error: {}").format(str(e)))
+                TUIApp.StatusUpdate(gettext("✗ Error: %s") % str(e))
             )
 
 
 class TUIApp(App):
     """Main TUI application class."""
+
+    def on_startup(self) -> None:
+        """Configure logging to show debug output on the console."""
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+        )
 
     CSS = """
     #pending-table {
@@ -132,6 +142,7 @@ class TUIApp(App):
 
     BINDINGS = [
         Binding("a", "add_url", "Add URL", show=True, priority=True),
+        Binding("d", "start_download", "Download", show=True, priority=True),
         Binding("r", "refresh", "Refresh", show=True, priority=True),
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
@@ -156,7 +167,13 @@ class TUIApp(App):
         self.recent_limit = recent_limit
         self.queue = Queue()
         self.logger = logging.getLogger(__name__)
-        self.status_message = ""
+
+        # UI state management
+        self.ui_state = {
+            'status_message': "",
+            'selected_pending_id': None,
+            'last_status_task': None
+        }
 
         # Set translated title and subtitle
         self.title = gettext("yt-dl-manager TUI")
@@ -167,11 +184,9 @@ class TUIApp(App):
         """Compose the main layout."""
         yield Header()
 
-        if self.status_message:
-            yield Label(self.status_message, classes="status-message")
-
         with Vertical():
-            yield Label(gettext("📥 Pending Downloads"), id="pending-label")
+            yield Label("", id="status-label", classes="status-message")
+            yield Label(gettext("📥 Pending Downloads (use arrow keys to select, 'd' to download)"), id="pending-label")
             yield DataTable(id="pending-table")
 
             yield Label(gettext("⏳ In Progress"), id="inprogress-label")
@@ -191,8 +206,9 @@ class TUIApp(App):
         await self.refresh_data()
         # Start periodic auto-refresh every 2 seconds
         self.set_interval(2.0, self.refresh_data)
-        # Ensure the app itself can receive key events
-        self.set_focus(None)
+        # Focus the pending table so user can select items
+        pending_table = self.query_one("#pending-table", DataTable)
+        pending_table.focus()
 
     async def setup_tables(self) -> None:
         """Set up the data tables with columns."""
@@ -201,8 +217,8 @@ class TUIApp(App):
             gettext("ID"), gettext("URL"), gettext("Status"),
             gettext("Requested"), gettext("Retries"))
 
-        # Make sure tables don't interfere with app-level key bindings
-        pending_table.can_focus = False
+        # Allow pending table to be focused for selection
+        pending_table.can_focus = True
 
         inprogress_table = self.query_one("#inprogress-table", DataTable)
         inprogress_table.add_columns(
@@ -218,6 +234,62 @@ class TUIApp(App):
         # Make sure tables don't interfere with app-level key bindings
         completed_table.can_focus = False
 
+    async def on_key(self, event) -> None:
+        """Handle key press events."""
+        self.logger.debug("Key pressed: %s", event.key)
+
+        if event.key == "d":
+            self.logger.debug("D key detected, calling action_start_download")
+            await self.action_start_download()
+            event.prevent_default()
+        elif event.key == "a":
+            self.logger.debug("A key detected, calling action_add_url")
+            await self.action_add_url()
+            event.prevent_default()
+        elif event.key == "r":
+            self.logger.debug("R key detected, calling action_refresh")
+            await self.action_refresh()
+            event.prevent_default()
+        elif event.key == "q":
+            self.logger.debug("Q key detected, calling action_quit")
+            await self.action_quit()
+            event.prevent_default()
+
+    async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        """Handle row highlighting in pending downloads table."""
+        if event.data_table.id == "pending-table":
+            self.logger.debug("Row highlighted: %s", event.row_key)
+            if event.row_key.value is not None:
+                try:
+                    # Get the ID from the first column of the highlighted row
+                    row_data = event.data_table.get_row(event.row_key)
+                    if row_data:
+                        self.ui_state['selected_pending_id'] = int(row_data[0])
+                        self.logger.debug(
+                            "Highlighted pending ID: %d", self.ui_state['selected_pending_id'])
+                    else:
+                        self.ui_state['selected_pending_id'] = None
+                except (ValueError, IndexError) as e:
+                    self.logger.debug("Error getting highlighted row: %s", e)
+                    self.ui_state['selected_pending_id'] = None
+
+    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection in pending downloads table."""
+        if event.data_table.id == "pending-table":
+            self.logger.debug("Row selected: %s", event.row_key)
+            try:
+                # Get the ID from the first column of the selected row
+                row_data = event.data_table.get_row(event.row_key)
+                if row_data:
+                    self.ui_state['selected_pending_id'] = int(row_data[0])
+                    self.logger.debug(
+                        "Row selected, pending ID: %d", self.ui_state['selected_pending_id'])
+                else:
+                    self.ui_state['selected_pending_id'] = None
+            except (ValueError, IndexError) as e:
+                self.logger.debug("Error getting selected row: %s", e)
+                self.ui_state['selected_pending_id'] = None
+
     async def refresh_data(self) -> None:
         """Refresh data in all tables."""
         await self.refresh_pending_downloads()
@@ -227,6 +299,10 @@ class TUIApp(App):
     async def refresh_pending_downloads(self) -> None:
         """Refresh the pending downloads table."""
         pending_table = self.query_one("#pending-table", DataTable)
+
+        # Store current selection ID
+        current_selection = self.ui_state['selected_pending_id']
+
         pending_table.clear()
 
         try:
@@ -234,8 +310,10 @@ class TUIApp(App):
             pending_downloads = self.queue.db.get_downloads_by_status(
                 'pending',
                 sort_by='timestamp_requested',
-                order='DESC'
+                sort_order='DESC'
             )
+
+            restore_row = None
             for download in pending_downloads:
                 # Format timestamp
                 requested = download.get('timestamp_requested', '')
@@ -251,15 +329,55 @@ class TUIApp(App):
                 url = download.get('url', '')
                 display_url = url[:50] + '...' if len(url) > 50 else url
 
-                pending_table.add_row(
+                row_key = pending_table.add_row(
                     str(download.get('id', '')),
                     display_url,
                     download.get('status', ''),
                     requested,
                     str(download.get('retries', 0))
                 )
+
+                # Check if this was the previously selected row
+                if current_selection and download.get('id') == current_selection:
+                    restore_row = row_key
+
+            # Restore selection if possible, or select first row
+            if pending_downloads:
+                self._restore_or_select_first_row(
+                    pending_table, pending_downloads, restore_row)
+
         except (ValueError, RuntimeError) as e:
-            self.logger.error("Error refreshing pending downloads: %s", str(e))
+            self.logger.error("Error refreshing pending downloads: %s", e)
+
+    def _restore_or_select_first_row(self, pending_table, pending_downloads, restore_row):
+        """Restore previous selection or select first row."""
+        if restore_row is not None:
+            try:
+                # Only try to move cursor if the restore_row is valid
+                if restore_row in pending_table.rows:
+                    pending_table.move_cursor(row=restore_row)
+                    # Update selected_pending_id to match the restored selection
+                    row_data = pending_table.get_row(restore_row)
+                    if row_data:
+                        self.ui_state['selected_pending_id'] = int(row_data[0])
+                    return
+            except (ValueError, IndexError, KeyError, TypeError):
+                pass  # Fall through to select first row
+
+        # If restore fails or no previous selection, select first row
+        self._select_first_pending_row(pending_table, pending_downloads)
+
+    def _select_first_pending_row(self, pending_table, pending_downloads):
+        """Helper to select the first row in pending downloads."""
+        try:
+            # If we have rows and downloads, set the selected_pending_id to the first download's ID
+            if pending_downloads and pending_table.row_count > 0:
+                self.ui_state['selected_pending_id'] = pending_downloads[0].get('id')
+                self.logger.debug(
+                    "Selected first pending ID: %s", self.ui_state['selected_pending_id'])
+                # Let the table handle cursor positioning naturally
+        except (IndexError, KeyError, ValueError) as e:
+            self.logger.debug("Error selecting first row: %s", e)
 
     async def refresh_inprogress_downloads(self) -> None:
         """Refresh the in-progress downloads table."""
@@ -292,7 +410,7 @@ class TUIApp(App):
                 )
         except (ValueError, RuntimeError) as e:
             self.logger.error(
-                "Error refreshing in-progress downloads: %s", str(e))
+                "Error refreshing in-progress downloads: %s", e)
 
     async def refresh_completed_downloads(self) -> None:
         """Refresh the completed downloads table."""
@@ -339,19 +457,125 @@ class TUIApp(App):
                 )
         except (ValueError, RuntimeError) as e:
             self.logger.error(
-                "Error refreshing completed downloads: %s", str(e))
+                "Error refreshing completed downloads: %s", e)
 
     async def action_add_url(self) -> None:
         """Show modal to add new URL."""
+        self.logger.debug("action_add_url called")
         await self.push_screen(URLInputModal(self))
+
+    def _get_current_pending_selection(self):
+        """Get the current selection from the pending table."""
+        pending_table = self.query_one("#pending-table", DataTable)
+
+        # First try the explicitly tracked selection
+        if self.ui_state['selected_pending_id'] is not None:
+            self.logger.debug(
+                "Using tracked selection: %s", self.ui_state['selected_pending_id'])
+            return self.ui_state['selected_pending_id']
+
+        # Then try to get from current cursor position
+        if pending_table.cursor_row is not None:
+            try:
+                row_data = pending_table.get_row(pending_table.cursor_row)
+                if row_data and len(row_data) > 0:
+                    selection_id = int(row_data[0])
+                    self.logger.debug(
+                        "Got selection from cursor: %s", selection_id)
+                    return selection_id
+            except (ValueError, IndexError) as e:
+                self.logger.debug("Error getting cursor row: %s", e)
+
+        # Finally, try to get the first row if table is not empty
+        if pending_table.row_count > 0:
+            try:
+                first_row_key = list(pending_table.rows.keys())[0]
+                row_data = pending_table.get_row(first_row_key)
+                if row_data and len(row_data) > 0:
+                    selection_id = int(row_data[0])
+                    self.logger.debug(
+                        "Got selection from first row: %s", selection_id)
+                    return selection_id
+            except (ValueError, IndexError) as e:
+                self.logger.debug("Error getting first row: %s", e)
+
+        return None
+
+    async def action_start_download(self) -> None:
+        """Start download for the selected pending item."""
+        self.logger.debug("action_start_download called")
+
+        selection_id = self._get_current_pending_selection()
+        await self.show_status(f"Debug: Selected ID = {selection_id}")
+
+        if selection_id is not None:
+            try:
+                # Get the full download info from database
+                pending_downloads = self.queue.get_pending()
+                self.logger.debug("Pending downloads: %s", pending_downloads)
+                download_info = None
+                for row_id, url, retries in pending_downloads:
+                    if row_id == selection_id:
+                        download_info = (row_id, url, retries)
+                        break
+
+                if download_info is None:
+                    await self.show_status(gettext("✗ Download {} not found in pending queue").format(selection_id))
+                    return
+
+                row_id, url, retries = download_info
+
+                # Start the download in a background task
+                self.logger.debug(
+                    "Starting download for row_id=%s, url=%s, retries=%s", row_id, url, retries)
+                asyncio.create_task(
+                    self._start_download_async(row_id, url, retries))
+                await self.show_status(gettext("🚀 Starting download for ID {}...").format(row_id))
+
+            except (ValueError, RuntimeError, KeyError, TypeError) as e:
+                self.logger.error("Error starting download: %s", e)
+                await self.show_status(gettext("✗ Error: %s") % str(e))
+        else:
+            await self.show_status(gettext("⚠ No item selected"))
+
+    async def _start_download_async(self, download_id: int, url: str, retries: int) -> None:
+        """Start download asynchronously in the background."""
+        try:
+            # Run the download in a thread to avoid blocking the UI
+            def run_download():
+                try:
+                    download_media(self.queue, download_id, url, retries)
+                    return True, None
+                except (ValueError, RuntimeError) as exc:
+                    return False, str(exc)
+                # Do not catch Exception here to avoid W0718
+
+            # Use run_in_executor to run the blocking download in a thread
+            loop = asyncio.get_event_loop()
+            success, error = await loop.run_in_executor(None, run_download)
+
+            if success:
+                await self.show_status(gettext("✓ Download completed for ID {}").format(download_id))
+            else:
+                await self.show_status(gettext("✗ Download failed for ID {}: {}").format(download_id, error))
+
+            # Refresh data to show updated status
+            await self.refresh_data()
+
+        except (ValueError, RuntimeError) as exc:
+            self.logger.error("Error in background download: %s", exc)
+            await self.show_status(gettext("✗ Download error for ID %s: %s") % (download_id, str(exc)))
+        # Do not catch Exception here to avoid W0718
 
     async def action_refresh(self) -> None:
         """Manually refresh all data."""
+        self.logger.debug("action_refresh called")
         await self.refresh_data()
         await self.show_status(gettext("🔄 Data refreshed"))
 
     async def action_quit(self) -> None:
         """Quit the application."""
+        self.logger.debug("action_quit called")
         self.exit()
 
     async def on_status_update(self, message: StatusUpdate) -> None:
@@ -364,10 +588,35 @@ class TUIApp(App):
 
     async def show_status(self, message: str) -> None:
         """Show a temporary status message."""
-        self.status_message = message
-        # Note: In a real implementation, you might want to add a temporary
-        # status bar or notification. For now, we'll just log it.
+        self.ui_state['status_message'] = message
         self.logger.info("Status: %s", message)
+
+        # Update the status label
+        try:
+            status_label = self.query_one("#status-label", Label)
+            status_label.update(message)
+
+            # Cancel previous auto-clear task
+            if self.ui_state['last_status_task']:
+                self.ui_state['last_status_task'].cancel()
+
+            # Auto-clear status after 3 seconds
+            self.ui_state['last_status_task'] = asyncio.create_task(
+                self._clear_status_after_delay())
+        except (ValueError, KeyError, RuntimeError) as exc:
+            self.logger.debug("Error updating status label: %s", exc)
+
+    async def _clear_status_after_delay(self):
+        """Clear status message after a delay."""
+        try:
+            await asyncio.sleep(3)
+            status_label = self.query_one("#status-label", Label)
+            status_label.update("")
+        except asyncio.CancelledError:
+            pass
+        except (ValueError, KeyError, RuntimeError) as exc:
+            self.logger.debug("Error clearing status: %s", exc)
+        # Only catch specific exceptions, not Exception
 
 
 def main(recent_limit: int = 10):

@@ -72,7 +72,7 @@ class TestTUIApp(unittest.TestCase):
         mock_db.get_downloads_by_status.assert_called_once_with(
             'pending',
             sort_by='timestamp_requested',
-            order='DESC'
+            sort_order='DESC'
         )
 
     @patch('yt_dl_manager.tui.Queue')
@@ -93,6 +93,9 @@ class TestTUIApp(unittest.TestCase):
 
         app = TUIApp()
         mock_table = Mock()
+        mock_table.rows = {"mock_row_key": None}  # Mock rows dict with one entry
+        mock_table.row_count = 1  # Mock row count
+        mock_table.add_row.return_value = "mock_row_key"
         app.query_one = Mock(return_value=mock_table)
 
         async def test_refresh():
