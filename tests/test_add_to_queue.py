@@ -177,7 +177,7 @@ class TestAddToQueue(unittest.TestCase):
         class FixedDateTime(datetime):
             """Mock datetime class for fixed timestamp in tests."""
             @classmethod
-            def now(cls, tz=None):
+            def now(cls, _=None):
                 return fixed_time
 
         with patch('yt_dl_manager.db_utils.datetime.datetime', FixedDateTime):
