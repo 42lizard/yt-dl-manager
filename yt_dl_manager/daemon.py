@@ -77,7 +77,3 @@ def main():
         return
     daemon = YTDLManagerDaemon()
     daemon.run()
-
-
-if __name__ == '__main__':
-    main()

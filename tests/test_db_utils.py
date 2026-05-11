@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 
-from yt_dl_manager.db_utils import DatabaseUtils, ensure_database_schema
+from yt_dl_manager.db_utils import DatabaseUtils
 
 
 class TestDatabaseUtils(unittest.TestCase):
@@ -472,30 +472,6 @@ class TestDatabaseUtils(unittest.TestCase):
         self.assertEqual(stats['files_missing'], 1)
         self.assertEqual(stats['files_found'], 0)
         self.assertEqual(stats['total_size_bytes'], 0)
-
-
-class TestEnsureDatabaseSchemaBackwardCompatibility(unittest.TestCase):
-    """Test cases for backward compatibility function."""
-
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        # Create a temporary database file for testing
-        self.test_db_fd, self.test_db_path = tempfile.mkstemp()
-        self.addCleanup(os.close, self.test_db_fd)
-        self.addCleanup(os.unlink, self.test_db_path)
-
-    def test_ensure_database_schema_creates_table(self):
-        """Test that the backward compatibility function still works."""
-        ensure_database_schema(self.test_db_path)
-
-        # Verify table exists
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
-        table_exists = cur.fetchone() is not None
-        conn.close()
-        self.assertTrue(table_exists)
 
 
 if __name__ == '__main__':

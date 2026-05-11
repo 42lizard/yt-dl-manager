@@ -300,10 +300,10 @@ class TUIApp(App):
 
         try:
             # Get pending downloads with full information
-            pending_downloads = self.queue.db.get_downloads_by_status(
+            pending_downloads = self.queue.get_downloads_by_status(
                 'pending',
                 sort_by='timestamp_requested',
-                sort_order='DESC'
+                order='DESC'
             )
 
             restore_row = None
@@ -412,11 +412,11 @@ class TUIApp(App):
 
         try:
             # Get completed downloads using existing database methods
-            downloads = self.queue.db.get_downloads_by_status(
+            downloads = self.queue.get_downloads_by_status(
                 'downloaded',
                 limit=self.recent_limit,
                 sort_by='timestamp_downloaded',
-                sort_order='DESC'
+                order='DESC'
             )
 
             for download in downloads:

@@ -40,8 +40,3 @@ def setup_logging(level=logging.INFO):
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
     return log_file
-
-
-def get_logger(name):
-    """Get a logger instance for the given name."""
-    return logging.getLogger(name)

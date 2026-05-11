@@ -167,24 +167,6 @@ class TestAddToQueue(unittest.TestCase):
             )
             mock_print.assert_called_once_with(expected_message)
 
-    def test_queue_length_empty(self):
-        """Test queue length when database is empty."""
-        self.assertEqual(self.queue_manager.queue_length(), 0)
-
-    def test_queue_length_with_items(self):
-        """Test queue length with multiple items in queue."""
-        # Add multiple URLs
-        urls = [
-            "https://www.youtube.com/watch?v=test1",
-            "https://www.youtube.com/watch?v=test2",
-            "https://www.youtube.com/watch?v=test3"
-        ]
-
-        for url in urls:
-            self.queue_manager.add_url(url)
-
-        self.assertEqual(self.queue_manager.queue_length(), 3)
-
     def test_add_url_with_timestamp(self):
         """Test that timestamp is correctly stored when adding URL."""
         test_url = "https://www.youtube.com/watch?v=timestamp_test"

@@ -19,7 +19,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
 - 🗃️ **Database maintenance** - Comprehensive commands for queue and file management
-- 🧪 **Comprehensive testing** - 116 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 111 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
@@ -369,11 +369,11 @@ yt-dl-manager/
 │               ├── yt-dl-manager.po  # German translation source
 │               └── yt-dl-manager.mo  # Compiled German translations
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (15 test cases)
-│   ├── test_add_to_queue.py # CLI tool tests (9 test cases)
-│   ├── test_queue.py      # Queue class tests (26 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (33 test cases)
-│   ├── test_maintenance.py # Maintenance commands tests (33 test cases)
+│   ├── test_daemon.py     # Daemon tests (13 test cases)
+│   ├── test_add_to_queue.py # CLI tool tests (7 test cases)
+│   ├── test_queue.py      # Queue class tests (22 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (28 test cases)
+│   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   ├── test_tui.py         # TUI tests (11 test cases)
 │   ├── test_i18n.py       # Internationalization tests (8 test cases)
@@ -384,15 +384,15 @@ yt-dl-manager/
 
 ### Test Coverage
 
-- **Daemon Tests (15 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
-- **CLI Tests (9 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
-- **Queue Tests (26 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (33 cases)**: Extended database operations, maintenance functions, data integrity
-- **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
+- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **CLI Tests (7 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
+- **Queue Tests (22 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (28 cases)**: Extended database operations, maintenance functions, data integrity
+- **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
 - **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
-- **Quality Metrics**: 100% test pass rate (116/116), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`

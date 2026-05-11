@@ -63,22 +63,6 @@ class TranslationManager:
 
         return self.current_translation.gettext(message)
 
-    def ngettext(self, singular: str, plural: str, n: int) -> str:
-        """Translate a message with plural forms.
-
-        Args:
-            singular: Singular form of the message.
-            plural: Plural form of the message.
-            n: Number to determine which form to use.
-
-        Returns:
-            Translated message in appropriate form.
-        """
-        if self.current_translation is None:
-            self.setup()
-
-        return self.current_translation.ngettext(singular, plural, n)
-
     def get_current_language(self) -> str:
         """Get the current language code being used.
 
@@ -177,20 +161,6 @@ def _(message: str) -> str:
         Translated message or original if no translation available.
     """
     return translation_manager.gettext(message)
-
-
-def ngettext(singular: str, plural: str, n: int) -> str:
-    """Translate a message with plural forms.
-
-    Args:
-        singular: Singular form of the message.
-        plural: Plural form of the message.
-        n: Number to determine which form to use.
-
-    Returns:
-        Translated message in appropriate form.
-    """
-    return translation_manager.ngettext(singular, plural, n)
 
 
 def get_current_language() -> str:
