@@ -138,12 +138,6 @@ class TestQueue(unittest.TestCase):
             self.queue.fail_download(0)
         self.assertIn("must be a positive integer", str(context.exception))
 
-    def test_retry_download_invalid_id(self):
-        """Test retrying download with invalid ID raises ValueError."""
-        with self.assertRaises(ValueError) as context:
-            self.queue.retry_download(-1)
-        self.assertIn("must be a positive integer", str(context.exception))
-
     def test_increment_retries_invalid_id(self):
         """Test incrementing retries with invalid ID raises ValueError."""
         with self.assertRaises(ValueError) as context:
@@ -189,24 +183,6 @@ class TestQueue(unittest.TestCase):
         # After marking as failed, should not appear in pending
         pending_after = self.queue.get_pending()
         self.assertEqual(len(pending_after), 0)
-
-    def test_retry_download(self):
-        """Test preparing a download for retry."""
-        test_url = "https://www.example.com/video"
-        self.queue.add_url(test_url)
-        pending = self.queue.get_pending()
-        download_id = pending[0][0]
-
-        # Mark as downloading first
-        self.queue.start_download(download_id)
-        self.assertEqual(len(self.queue.get_pending()), 0)
-
-        # Now retry
-        self.queue.retry_download(download_id)
-        # Should appear in pending again with incremented retries
-        pending_after = self.queue.get_pending()
-        self.assertEqual(len(pending_after), 1)
-        self.assertEqual(pending_after[0][2], 1)  # retries should be 1
 
     def test_increment_retries(self):
         """Test incrementing retry counter."""

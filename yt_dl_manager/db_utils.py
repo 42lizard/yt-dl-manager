@@ -32,28 +32,6 @@ def is_valid_url(url):
     return isinstance(url, str) and url_pattern.match(url.strip())
 
 
-def ensure_database_schema(db_path):
-    """Create or verify the downloads table schema.
-    Args:
-        db_path (str): Path to the SQLite database file.
-    Raises:
-        sqlite3.OperationalError: If database connection fails during setup.
-    Note:
-        This function is kept for backward compatibility.
-        New code should use DatabaseUtils class instead.
-    """
-    try:
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute(DOWNLOADS_TABLE_SCHEMA)
-        conn.commit()
-        conn.close()
-    except sqlite3.OperationalError:
-        # If we can't connect to the database during initialization,
-        # we'll let the error happen later during actual operations
-        pass
-
-
 # Database schema definition
 DOWNLOADS_TABLE_SCHEMA = '''
 CREATE TABLE IF NOT EXISTS downloads (
@@ -164,9 +142,11 @@ class DatabaseUtils:
         cur = conn.cursor()
         cur.execute(
             "UPDATE downloads SET status = ?, "
-            "timestamp_downloaded = datetime('now'), "
+            "timestamp_downloaded = ?, "
             "final_filename = ?, extractor = ? WHERE id = ?",
-            (DownloadStatus.DOWNLOADED.value, filename, extractor, row_id)
+            (DownloadStatus.DOWNLOADED.value,
+             datetime.datetime.now(datetime.timezone.utc).isoformat(),
+             filename, extractor, row_id)
         )
         conn.commit()
         conn.close()

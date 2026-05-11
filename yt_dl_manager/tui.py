@@ -82,13 +82,6 @@ class URLInputModal(ModalScreen):
 class TUIApp(App):
     """Main TUI application class."""
 
-    def on_startup(self) -> None:
-        """Configure logging to show debug output on the console."""
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-        )
-
     CSS = """
     #pending-table {
         height: 33%;
@@ -307,10 +300,10 @@ class TUIApp(App):
 
         try:
             # Get pending downloads with full information
-            pending_downloads = self.queue.db.get_downloads_by_status(
+            pending_downloads = self.queue.get_downloads_by_status(
                 'pending',
                 sort_by='timestamp_requested',
-                sort_order='DESC'
+                order='DESC'
             )
 
             restore_row = None
@@ -419,11 +412,11 @@ class TUIApp(App):
 
         try:
             # Get completed downloads using existing database methods
-            downloads = self.queue.db.get_downloads_by_status(
+            downloads = self.queue.get_downloads_by_status(
                 'downloaded',
                 limit=self.recent_limit,
                 sort_by='timestamp_downloaded',
-                sort_order='DESC'
+                order='DESC'
             )
 
             for download in downloads:
@@ -506,7 +499,6 @@ class TUIApp(App):
         self.logger.debug("action_start_download called")
 
         selection_id = self._get_current_pending_selection()
-        await self.show_status(f"Debug: Selected ID = {selection_id}")
 
         if selection_id is not None:
             try:

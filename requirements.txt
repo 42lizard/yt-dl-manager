@@ -1,4 +1,0 @@
-yt-dlp
-pytest
-platformdirs
-textual

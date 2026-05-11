@@ -100,7 +100,7 @@ class Queue:
             in_progress = self.db.get_downloads_by_status(
                 'downloading',
                 sort_by='timestamp_requested',
-                sort_order='DESC'
+                order='DESC'
             )
             self.logger.debug(
                 "Found %d in-progress downloads", len(in_progress))
@@ -108,6 +108,36 @@ class Queue:
         except Exception as e:
             self.logger.error(
                 "Failed to retrieve in-progress downloads: %s", str(e))
+            raise
+
+    def get_downloads_by_status(self, status, limit=None, sort_by='timestamp_requested',
+                                order='DESC', **filters):
+        """Get downloads filtered by status.
+
+        Args:
+            status (str): Download status to filter by.
+            limit (int, optional): Maximum number of results.
+            sort_by (str): Field to sort by.
+            order (str): Sort order (ASC, DESC).
+            **filters: Additional filters (retry_count, extractor).
+
+        Returns:
+            list: List of download records as dictionaries.
+
+        Raises:
+            Exception: If database operation fails.
+        """
+        self.logger.debug("Getting downloads with status: %s", status)
+        try:
+            downloads = self.db.get_downloads_by_status(
+                status, limit=limit, sort_by=sort_by, order=order, **filters
+            )
+            self.logger.debug(
+                "Found %d downloads with status %s", len(downloads), status)
+            return downloads
+        except Exception as e:
+            self.logger.error(
+                "Failed to get downloads by status %s: %s", status, str(e))
             raise
 
     def start_download(self, download_id):
@@ -183,30 +213,6 @@ class Queue:
         except Exception as e:
             self.logger.error(
                 "Failed to mark download %d as failed: %s", download_id, str(e))
-            raise
-
-    def retry_download(self, download_id):
-        """Prepare a download for retry by incrementing retry count and setting to pending.
-
-        Args:
-            download_id (int): The database row ID of the download.
-
-        Raises:
-            ValueError: If download_id is not a positive integer.
-            Exception: If database operation fails.
-        """
-        if not isinstance(download_id, int) or download_id <= 0:
-            raise ValueError("download_id must be a positive integer")
-
-        self.logger.info("Preparing download %d for retry", download_id)
-        try:
-            self.db.increment_retries(download_id)
-            self.db.set_status_to_pending(download_id)
-            self.logger.info(
-                "Successfully prepared download %d for retry", download_id)
-        except Exception as e:
-            self.logger.error(
-                "Failed to prepare download %d for retry: %s", download_id, str(e))
             raise
 
     def increment_retries(self, download_id):

@@ -2,8 +2,6 @@
 """Add URLs to the yt-dl-manager SQLite queue and optionally download immediately."""
 
 import logging
-import sys
-import sqlite3
 from .config import get_config_path
 from .queue import Queue
 from .download_utils import download_media
@@ -24,10 +22,6 @@ class AddToQueue:
         print(message)  # Keep as print for CLI user feedback
         return success, row_id
 
-    def queue_length(self):
-        """Return the number of items in the queue."""
-        return self.queue.get_queue_length()
-
 
 def main(args):
     """Main function for adding a URL to the queue."""
@@ -40,24 +34,5 @@ def main(args):
     queue_adder = AddToQueue()
     success, row_id = queue_adder.add_url(args.url)
     if getattr(args, 'download', False) and success and row_id:
-        # Fetch URL and retries for this row_id
         queue = queue_adder.queue
-        conn = sqlite3.connect(queue.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT url, retries FROM downloads WHERE id = ?", (row_id,))
-        row = cur.fetchone()
-        conn.close()
-        if row:
-            url, retries = row
-            download_media(queue, row_id, url, retries, max_retries=3)
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        # Keep as print for CLI usage
-        print("Usage: python -m yt_dl_manager.add_to_queue <media_url>")
-        sys.exit(1)
-    input_url = sys.argv[1]
-    adder = AddToQueue()
-    adder.add_url(input_url)
+        download_media(queue, row_id, args.url, 0, max_retries=3)

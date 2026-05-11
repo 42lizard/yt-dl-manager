@@ -235,7 +235,7 @@ def main():
         "init": lambda a: create_default_config(force=a.force),
         "daemon": lambda a: daemon_main(),
         "add": add_to_queue_main,
-        "tui": lambda a: tui_main(recent_limit=a.recent_limit),
+        "tui": lambda a: tui_main(recent_limit=max(a.recent_limit, 1)),
         "language": handle_language_command,
         "list": handle_list_command,
         "status": lambda a: handle_status_command(),

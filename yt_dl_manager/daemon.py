@@ -60,9 +60,7 @@ class YTDLManagerDaemon:
                     for row_id, url, retries in pending:
                         self.download_media(row_id, url, retries)
                 else:
-                    no_pending_msg = 'No pending downloads.'
-                    logger.debug(no_pending_msg)
-                    print(no_pending_msg)  # Print for daemon visibility
+                    logger.debug('No pending downloads.')
                 time.sleep(POLL_INTERVAL)
         except KeyboardInterrupt:
             shutdown_msg = 'Daemon stopped.'
@@ -79,7 +77,3 @@ def main():
         return
     daemon = YTDLManagerDaemon()
     daemon.run()
-
-
-if __name__ == '__main__':
-    main()
