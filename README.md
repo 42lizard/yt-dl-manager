@@ -19,7 +19,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
 - 🗃️ **Database maintenance** - Comprehensive commands for queue and file management
-- 🧪 **Comprehensive testing** - 97 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 116 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
@@ -378,7 +378,6 @@ yt-dl-manager/
 │   ├── test_tui.py         # TUI tests (11 test cases)
 │   ├── test_i18n.py       # Internationalization tests (8 test cases)
 │   └── test_utils.py      # Test helpers
-├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs, textual)
 ├── LICENSE                # ISC license
 └── README.md              # Documentation
 ```
@@ -393,7 +392,7 @@ yt-dl-manager/
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
 - **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
-- **Quality Metrics**: 100% test pass rate (116/116), 9.99/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (116/116), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`

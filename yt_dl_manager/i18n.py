@@ -200,7 +200,3 @@ def get_current_language() -> str:
         Current language code from available languages.
     """
     return translation_manager.get_current_language()
-
-
-# Initialize translation on module import
-setup_translation()

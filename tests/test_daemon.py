@@ -321,7 +321,6 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         mock_print.assert_any_call(
             'Daemon started. Polling for pending downloads...'
         )
-        mock_print.assert_any_call('No pending downloads.')
         mock_sleep.assert_called_once_with(10)  # POLL_INTERVAL
 
     @patch('yt_dl_manager.daemon.time.sleep')

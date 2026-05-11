@@ -30,7 +30,6 @@ yt-dl-manager/
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   ├── test_tui.py         # TUI tests (11 test cases)
 │   └── test_utils.py      # Test helpers
-├── requirements.txt       # Dependencies (yt-dlp, pytest, platformdirs, textual)
 ├── LICENSE                # ISC license
 └── README.md              # Comprehensive documentation
 ```
@@ -67,7 +66,7 @@ Table: `downloads`
 - `extractor` (TEXT, nullable)
 - `retries` (INTEGER DEFAULT 0)
 
-✅ **108 comprehensive unit tests** (100% pass rate)
+✅ **116 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** with strict code quality standards
 ✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
 ✅ **Modern CLI interface** with subcommands (init, daemon, add, tui)
@@ -91,7 +90,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue functionality with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] **Comprehensive unit test suite (108 tests)**
+- [x] **Comprehensive unit test suite (116 tests)**
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -139,7 +138,7 @@ pylint yt_dl_manager
 - **Maintenance Tests (33 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
-- **Quality Metrics**: 100% test pass rate (108/108), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (116/116), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.8, 3.9, 3.10, 3.11
@@ -170,7 +169,7 @@ pylint yt_dl_manager
 - Protected against malicious user input in all database interactions
 
 **Enhanced Testing & Quality**: 
-- Expanded test suite to 97 comprehensive tests covering all functionality including maintenance commands
+- Expanded test suite to 116 comprehensive tests covering all functionality including maintenance commands
 - Updated test mocking strategy for new configuration system compatibility
 - Maintained high code quality with 10/10 pylint score
 - All tests passing with robust CI/CD pipeline

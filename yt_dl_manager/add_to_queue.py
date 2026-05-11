@@ -3,7 +3,6 @@
 
 import logging
 import sys
-import sqlite3
 from .config import get_config_path
 from .queue import Queue
 from .download_utils import download_media
@@ -40,17 +39,8 @@ def main(args):
     queue_adder = AddToQueue()
     success, row_id = queue_adder.add_url(args.url)
     if getattr(args, 'download', False) and success and row_id:
-        # Fetch URL and retries for this row_id
         queue = queue_adder.queue
-        conn = sqlite3.connect(queue.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT url, retries FROM downloads WHERE id = ?", (row_id,))
-        row = cur.fetchone()
-        conn.close()
-        if row:
-            url, retries = row
-            download_media(queue, row_id, url, retries, max_retries=3)
+        download_media(queue, row_id, args.url, 0, max_retries=3)
 
 
 if __name__ == '__main__':
