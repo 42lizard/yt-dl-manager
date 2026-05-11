@@ -68,7 +68,7 @@ Table: `downloads`
 
 ✅ **111 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** with strict code quality standards
-✅ **GitHub Actions CI/CD** with Python 3.8-3.11 matrix testing
+✅ **GitHub Actions CI/CD** with Python 3.11-3.14 matrix testing
 ✅ **Modern CLI interface** with subcommands (init, daemon, add, tui)
 ✅ **Terminal User Interface (TUI)** with keyboard-driven queue management
 ✅ **ISC License** for open-source distribution
@@ -141,7 +141,7 @@ pylint yt_dl_manager
 - **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
-- Automated testing across Python 3.8, 3.9, 3.10, 3.11
+- Automated testing across Python 3.11, 3.12, 3.13, 3.14
 - Code quality enforcement with pylint
 - Runs on every push and pull request
 

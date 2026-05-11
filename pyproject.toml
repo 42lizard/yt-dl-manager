@@ -22,9 +22,6 @@ classifiers = [
     "License :: OSI Approved :: ISC License (ISCL)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -34,7 +31,7 @@ classifiers = [
     "Topic :: System :: Archiving",
     "Topic :: Utilities",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "yt-dlp",
     "platformdirs",

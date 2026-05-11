@@ -34,7 +34,7 @@ autopep8 --in-place <file>
 
 ## Key conventions
 
-- **Python >= 3.8 required.** No `match` statements, no `dict | dict` union, no walrus in certain contexts.
+- **Python >= 3.11 required.**
 - **Pylint 10/10 mandatory** for app code. Do not add `# pylint: disable` — fix the code. Test `.pylintrc` disables `duplicate-code`, `too-few-public-methods`, `too-many-public-methods`.
 - **Tests**: `unittest.TestCase`, `tempfile` for DB fixtures, `unittest.mock`. Use `tests.test_utils.create_test_schema(db_path)` to set up test databases.
 - **SQL**: parameterized queries only (`?` placeholders). Never f-strings or string interpolation in SQL.

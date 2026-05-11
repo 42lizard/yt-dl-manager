@@ -41,7 +41,7 @@ CLI entry point (`__main__.py`) uses argparse subcommands that dispatch to handl
 ## Key Conventions
 
 ### Python compatibility
-- Must work on Python 3.8, 3.9, 3.10, and 3.11. Avoid features introduced after 3.8 (e.g., walrus operator in certain contexts, `match` statements, `dict | dict` union).
+- Must work on Python 3.11, 3.12, 3.13, and 3.14.
 
 ### Code quality
 - Pylint must score **10/10** for application code. Do not add `# pylint: disable` comments to achieve this — fix the code instead.

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/42lizard/yt-dl-manager/workflows/Tests/badge.svg)](https://github.com/42lizard/yt-dl-manager/actions/workflows/test.yml)
 [![Pylint](https://github.com/42lizard/yt-dl-manager/workflows/Pylint/badge.svg)](https://github.com/42lizard/yt-dl-manager/actions/workflows/pylint.yml)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
 A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 queueing and a user-friendly CLI
