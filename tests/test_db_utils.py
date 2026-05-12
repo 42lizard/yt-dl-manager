@@ -473,6 +473,20 @@ class TestDatabaseUtils(unittest.TestCase):
         self.assertEqual(stats['files_found'], 0)
         self.assertEqual(stats['total_size_bytes'], 0)
 
+    def test_get_download_by_id(self):
+        """Test getting a download by ID."""
+        self.db_utils.add_url("https://example.com/video")
+        download = self.db_utils.get_download_by_id(1)
+        self.assertIsNotNone(download)
+        self.assertEqual(download['id'], 1)
+        self.assertEqual(download['url'], "https://example.com/video")
+        self.assertEqual(download['status'], "pending")
+
+    def test_get_download_by_id_not_found(self):
+        """Test getting a non-existent download by ID."""
+        download = self.db_utils.get_download_by_id(999)
+        self.assertIsNone(download)
+
 
 if __name__ == '__main__':
     unittest.main()

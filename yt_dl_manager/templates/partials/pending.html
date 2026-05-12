@@ -1,0 +1,30 @@
+{% if downloads %}
+<table>
+    <thead>
+        <tr>
+            <th>{{ _('ID') }}</th>
+            <th>{{ _('URL') }}</th>
+            <th>{{ _('Status') }}</th>
+            <th>{{ _('Requested') }}</th>
+            <th>{{ _('Retries') }}</th>
+            <th>{{ _('Actions') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in downloads %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.url_display }}</td>
+            <td>{{ d.status }}</td>
+            <td>{{ d.timestamp_display }}</td>
+            <td>{{ d.retries }}</td>
+            <td>
+                <button class="btn btn-danger" hx-delete="/remove/{{ d.id }}" hx-target="closest tr" hx-swap="outerHTML swap:300ms">{{ _('Remove') }}</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-state">{{ _('No pending downloads') }}</p>
+{% endif %}

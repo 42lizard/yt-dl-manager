@@ -10,6 +10,7 @@ from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
 from .maintenance import MaintenanceCommands
 from .tui import main as tui_main
+from .web_ui import main as web_ui_main
 from .config import get_language_preference, set_language_preference
 from .i18n import _, setup_translation, get_available_languages
 from .i18n import get_current_language
@@ -58,6 +59,23 @@ def setup_argument_parser():
         type=int,
         default=10,
         help=_("Number of recent completed downloads to show (default: 10)."),
+    )
+
+    # webui command
+    webui_parser = subparsers.add_parser(
+        "webui", help=_("Launch the Web User Interface.")
+    )
+    webui_parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help=_("Host to bind to (default: 127.0.0.1)."),
+    )
+    webui_parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help=_("Port to bind to (default: 5000)."),
     )
 
     # language command
@@ -236,6 +254,7 @@ def main():
         "daemon": lambda a: daemon_main(),
         "add": add_to_queue_main,
         "tui": lambda a: tui_main(recent_limit=max(a.recent_limit, 1)),
+        "webui": lambda a: web_ui_main(host=a.host, port=a.port),
         "language": handle_language_command,
         "list": handle_list_command,
         "status": lambda a: handle_status_command(),

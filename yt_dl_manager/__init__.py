@@ -1,6 +1,6 @@
 """yt-dl-manager: A simple Python daemon for managing media downloads using yt-dlp."""
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __author__ = "Oliver Gassner"
 __email__ = "42lizard@42lizard.dev"
 __description__ = (

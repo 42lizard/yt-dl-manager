@@ -19,11 +19,12 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
 - 🗃️ **Database maintenance** - Comprehensive commands for queue and file management
-- 🧪 **Comprehensive testing** - 111 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 144 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
 - 🖥️ **Terminal User Interface (TUI)** - Interactive keyboard-driven interface for queue management
+- 🌐 **Web User Interface (Web UI)** - Responsive browser-based dashboard with HTMX
 - 🌍 **Internationalization** - Full i18n support with English and German languages
 
 ## 🚀 Quick Start
@@ -83,6 +84,9 @@ yt-dl-manager daemon
 
 # Launch the Terminal User Interface (TUI)
 yt-dl-manager tui
+
+# Launch the Web User Interface (Web UI)
+yt-dl-manager webui
 ```
 
 ## 🖥️ Terminal User Interface (TUI)
@@ -135,6 +139,61 @@ yt-dl-manager tui --recent-limit 5     # Show only 5 recent downloads
 ```
 
 The TUI provides a modern, efficient way to monitor download queues and add new URLs without switching between terminal commands, significantly improving the user experience for interactive queue management.
+
+## 🌐 Web User Interface (Web UI)
+
+yt-dl-manager includes a responsive Web User Interface built with Flask and HTMX, providing a browser-based dashboard for managing your download queue from any device.
+
+### Launching the Web UI
+
+```bash
+# Launch Web UI with default settings (127.0.0.1:5000)
+yt-dl-manager webui
+
+# Launch Web UI with custom host and port
+yt-dl-manager webui --host 0.0.0.0 --port 8080
+```
+
+Open `http://127.0.0.1:5000` in your browser after launching.
+
+### Web UI Features
+
+- **📊 Live Dashboard**:
+  - **Status Bar**: Real-time counts of pending, downloading, completed, and failed downloads
+  - **Pending Downloads Panel**: Shows all queued downloads with ID, URL, status, timestamp, and retry count
+  - **In-Progress Panel**: Displays currently downloading items
+  - **Completed Downloads Panel**: Shows recent completed downloads with file paths
+
+- **⚡ HTMX-Powered Interactions**:
+  - Auto-refreshing sections update every 2 seconds without page reloads
+  - Add URLs via form submission with instant toast notifications
+  - Download, retry, and remove actions with immediate visual feedback
+  - All interactions use server-rendered HTML fragments for zero client-side JavaScript
+
+- **📱 Responsive Design**:
+  - Mobile-first CSS that adapts from phones to desktops
+  - Touch-friendly buttons and form inputs
+  - Optimized table layouts for small screens
+
+- **🔄 Real-time Integration**:
+  - Connects directly to your existing SQLite database
+  - Safe concurrent operation with the daemon via atomic job claiming
+  - Added URLs are immediately available to the daemon process
+  - No need to restart the daemon when adding URLs via Web UI
+
+### Web UI Command Options
+
+```bash
+# Basic usage
+yt-dl-manager webui
+
+# Custom bind address
+yt-dl-manager webui --host 0.0.0.0       # Listen on all interfaces
+yt-dl-manager webui --port 8080         # Use port 8080
+yt-dl-manager webui --host 0.0.0.0 --port 8080
+```
+
+The Web UI provides a modern, accessible way to monitor download queues and manage URLs from any browser, complementing the TUI and CLI interfaces for maximum flexibility.
 
 ## 🔧 Database Maintenance Commands
 
@@ -363,6 +422,14 @@ yt-dl-manager/
 │   ├── logging_config.py  # Centralized logging configuration
 │   ├── i18n.py            # Internationalization utilities with gettext
 │   ├── tui.py             # Terminal User Interface with Textual
+│   ├── web_ui.py          # Web User Interface with Flask and HTMX
+│   ├── templates/         # Jinja2 HTML templates
+│   │   ├── base.html
+│   │   ├── dashboard.html
+│   │   └── partials/
+│   └── static/            # Static assets (CSS)
+│       └── css/
+│           └── style.css
 │   └── locale/            # Translation files
 │       └── de/            # German translations
 │           └── LC_MESSAGES/
@@ -375,7 +442,9 @@ yt-dl-manager/
 │   ├── test_db_utils.py   # Database utilities tests (28 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
-│   ├── test_tui.py         # TUI tests (11 test cases)
+│   ├── test_tui.py        # TUI tests (11 test cases)
+│   ├── test_web_ui.py     # Web UI tests (11 test cases)
+│   ├── test_web_ui_background.py # Web UI background tests (1 test case)
 │   ├── test_i18n.py       # Internationalization tests (8 test cases)
 │   └── test_utils.py      # Test helpers
 ├── LICENSE                # ISC license
@@ -391,8 +460,10 @@ yt-dl-manager/
 - **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
+- **Web UI Tests (11 cases)**: Flask route handlers, fragment rendering, form validation
+- **Web UI Background Tests (1 case)**: ThreadPoolExecutor integration for non-blocking downloads
 - **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
-- **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (144/144), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`

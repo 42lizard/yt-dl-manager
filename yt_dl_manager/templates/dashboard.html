@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ _('Dashboard') }}</h1>
+
+<section class="add-url-section">
+    <form hx-post="/add" hx-target="#pending-section" hx-swap="innerHTML">
+        <input type="url" name="url" placeholder="{{ _('Enter video URL...') }}" required>
+        <button type="submit" class="btn btn-primary">{{ _('Add to Queue') }}</button>
+    </form>
+</section>
+
+<section class="status-section">
+    <div id="status-section" hx-get="/partials/status" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
+</section>
+
+<section class="dashboard-grid">
+    <div class="pending-panel">
+        <h2>{{ _('Pending') }}</h2>
+        <div id="pending-section" hx-get="/partials/pending" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
+    </div>
+    <div class="inprogress-panel">
+        <h2>{{ _('In Progress') }}</h2>
+        <div id="inprogress-section" hx-get="/partials/in-progress" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
+    </div>
+    <div class="completed-panel">
+        <h2>{{ _('Completed') }}</h2>
+        <div id="completed-section" hx-get="/partials/completed" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
+    </div>
+</section>
+{% endblock %}

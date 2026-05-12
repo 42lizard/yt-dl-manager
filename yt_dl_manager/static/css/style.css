@@ -1,0 +1,153 @@
+:root {
+    --bg: #f5f5f5;
+    --text: #333;
+    --border: #ddd;
+    --card-bg: #fff;
+    --primary: #007bff;
+    --danger: #dc3545;
+    --secondary: #6c757d;
+}
+
+body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.navbar {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0;
+}
+
+.nav-brand {
+    font-weight: bold;
+    font-size: 1.25rem;
+    text-decoration: none;
+    color: var(--text);
+}
+
+.dashboard-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.pending-panel {
+    grid-column: 1 / -1;
+}
+
+.add-url-section {
+    margin-bottom: 1rem;
+}
+
+.add-url-section form {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.add-url-section input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.status-section {
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+th, td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.status-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.status-item {
+    background: var(--card-bg);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.btn {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--secondary);
+    color: white;
+}
+
+#toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+}
+
+#toast {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.empty-state {
+    color: #666;
+    font-style: italic;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pending-panel {
+        grid-column: 1 / -1;
+    }
+}

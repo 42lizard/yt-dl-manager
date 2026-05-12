@@ -240,6 +240,74 @@ class TestQueue(unittest.TestCase):
         self.assertEqual(status['failed'], 1)
         self.assertEqual(status['pending'], 0)
 
+    def test_get_download_by_id(self):
+        """Test getting a download by ID."""
+        self.queue.add_url("https://www.example.com/video")
+        download = self.queue.get_download_by_id(1)
+        self.assertIsNotNone(download)
+        self.assertEqual(download['id'], 1)
+        self.assertEqual(download['url'], "https://www.example.com/video")
+
+    def test_get_download_by_id_not_found(self):
+        """Test getting a non-existent download by ID."""
+        download = self.queue.get_download_by_id(999)
+        self.assertIsNone(download)
+
+    def test_get_download_by_id_invalid_id(self):
+        """Test getting a download with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.get_download_by_id(0)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+    def test_reset_to_pending(self):
+        """Test resetting a download to pending status."""
+        self.queue.add_url("https://www.example.com/video")
+        self.queue.start_download(1)
+        count = self.queue.reset_to_pending(1)
+        self.assertEqual(count, 1)
+        pending = self.queue.get_pending()
+        self.assertEqual(len(pending), 1)
+
+    def test_reset_to_pending_not_found(self):
+        """Test resetting a non-existent download raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.reset_to_pending(999)
+        self.assertIn("not found", str(context.exception))
+
+    def test_reset_to_pending_invalid_id(self):
+        """Test resetting with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.reset_to_pending(0)
+        self.assertIn("must be a positive integer", str(context.exception))
+
+    def test_remove_by_id(self):
+        """Test removing a download by ID."""
+        self.queue.add_url("https://www.example.com/video")
+        count = self.queue.remove_by_id(1)
+        self.assertEqual(count, 1)
+        length = self.queue.get_queue_length()
+        self.assertEqual(length, 0)
+
+    def test_remove_by_id_not_found(self):
+        """Test removing a non-existent download raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.remove_by_id(999)
+        self.assertIn("not found", str(context.exception))
+
+    def test_remove_by_id_in_progress(self):
+        """Test removing an in-progress download raises RuntimeError."""
+        self.queue.add_url("https://www.example.com/video")
+        self.queue.start_download(1)
+        with self.assertRaises(RuntimeError) as context:
+            self.queue.remove_by_id(1)
+        self.assertIn("in progress", str(context.exception))
+
+    def test_remove_by_id_invalid_id(self):
+        """Test removing with invalid ID raises ValueError."""
+        with self.assertRaises(ValueError) as context:
+            self.queue.remove_by_id(0)
+        self.assertIn("must be a positive integer", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()

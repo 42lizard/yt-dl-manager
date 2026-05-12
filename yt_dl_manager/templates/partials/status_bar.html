@@ -1,0 +1,18 @@
+<div class="status-bar">
+    <div class="status-item">
+        <span>{{ _('Pending') }}:</span>
+        <strong>{{ status_counts.pending }}</strong>
+    </div>
+    <div class="status-item">
+        <span>{{ _('Downloading') }}:</span>
+        <strong>{{ status_counts.downloading }}</strong>
+    </div>
+    <div class="status-item">
+        <span>{{ _('Completed') }}:</span>
+        <strong>{{ status_counts.downloaded }}</strong>
+    </div>
+    <div class="status-item">
+        <span>{{ _('Failed') }}:</span>
+        <strong>{{ status_counts.failed }}</strong>
+    </div>
+</div>

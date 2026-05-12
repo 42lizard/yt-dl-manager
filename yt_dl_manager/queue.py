@@ -294,3 +294,93 @@ class Queue:
         except Exception as e:
             self.logger.error("Failed to get queue status: %s", str(e))
             raise
+
+    def get_download_by_id(self, download_id):
+        """Get a single download by its ID.
+
+        Args:
+            download_id (int): The database row ID of the download.
+
+        Returns:
+            dict or None: Download record as dict, or None if not found.
+
+        Raises:
+            ValueError: If download_id is not a positive integer.
+            Exception: If database operation fails.
+        """
+        if not isinstance(download_id, int) or download_id <= 0:
+            raise ValueError("download_id must be a positive integer")
+
+        self.logger.debug("Getting download by ID: %d", download_id)
+        try:
+            download = self.db.get_download_by_id(download_id)
+            self.logger.debug("Download %d found: %s", download_id,
+                              download is not None)
+            return download
+        except Exception as e:
+            self.logger.error(
+                "Failed to get download %d: %s", download_id, str(e))
+            raise
+
+    def reset_to_pending(self, download_id):
+        """Reset a download to pending status.
+
+        Args:
+            download_id (int): The database row ID of the download.
+
+        Returns:
+            int: Number of downloads reset.
+
+        Raises:
+            ValueError: If download_id is not a positive integer or not found.
+            Exception: If database operation fails.
+        """
+        if not isinstance(download_id, int) or download_id <= 0:
+            raise ValueError("download_id must be a positive integer")
+
+        self.logger.info("Resetting download %d to pending", download_id)
+        try:
+            count = self.db.reset_downloads_to_pending([download_id])
+            if count == 0:
+                raise ValueError(
+                    f"Download {download_id} not found")
+            self.logger.info("Reset %d downloads to pending", count)
+            return count
+        except Exception as e:
+            self.logger.error(
+                "Failed to reset download %d: %s", download_id, str(e))
+            raise
+
+    def remove_by_id(self, download_id):
+        """Remove a download by its ID.
+
+        Args:
+            download_id (int): The database row ID of the download.
+
+        Returns:
+            int: Number of downloads removed.
+
+        Raises:
+            ValueError: If download_id is not a positive integer or not found.
+            RuntimeError: If download is currently in progress.
+            Exception: If database operation fails.
+        """
+        if not isinstance(download_id, int) or download_id <= 0:
+            raise ValueError("download_id must be a positive integer")
+
+        download = self.db.get_download_by_id(download_id)
+        if not download:
+            raise ValueError(f"Download {download_id} not found")
+        if download.get('status') == 'downloading':
+            raise RuntimeError(
+                "Cannot remove a download that is currently in progress")
+
+        self.logger.info("Removing download %d", download_id)
+        try:
+            count = self.db.remove_downloads_by_ids([download_id])
+            self.logger.info("Removed %d downloads", count)
+            return count
+        except Exception as e:
+            self.logger.error(
+                "Failed to remove download %d: %s", download_id, str(e))
+            raise

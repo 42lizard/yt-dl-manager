@@ -20,7 +20,15 @@ yt-dl-manager/
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download_utils.py  # Shared download logic with yt-dlp integration
 │   ├── logging_config.py  # Centralized logging configuration
-│   └── tui.py             # Terminal User Interface with Textual
+│   ├── tui.py             # Terminal User Interface with Textual
+│   ├── web_ui.py          # Web User Interface with Flask and HTMX
+│   ├── templates/         # Jinja2 HTML templates
+│   │   ├── base.html
+│   │   ├── dashboard.html
+│   │   └── partials/
+│   └── static/            # Static assets (CSS)
+│       └── css/
+│           └── style.css
 ├── tests/                 # Unit test suite
 │   ├── test_daemon.py     # Daemon tests (13 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (7 test cases)
@@ -28,7 +36,9 @@ yt-dl-manager/
 │   ├── test_db_utils.py   # Database utilities tests (28 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
-│   ├── test_tui.py         # TUI tests (11 test cases)
+│   ├── test_tui.py        # TUI tests (11 test cases)
+│   ├── test_web_ui.py     # Web UI tests (11 test cases)
+│   ├── test_web_ui_background.py # Web UI background tests (1 test case)
 │   └── test_utils.py      # Test helpers
 ├── LICENSE                # ISC license
 └── README.md              # Comprehensive documentation
@@ -53,6 +63,9 @@ python -m yt_dl_manager daemon
 
 # Launch Terminal User Interface
 python -m yt_dl_manager tui [--recent-limit N]
+
+# Launch Web User Interface
+python -m yt_dl_manager webui [--host HOST] [--port PORT]
 ```
 
 ### Database Schema
@@ -66,11 +79,12 @@ Table: `downloads`
 - `extractor` (TEXT, nullable)
 - `retries` (INTEGER DEFAULT 0)
 
-✅ **111 comprehensive unit tests** (100% pass rate)
+✅ **144 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** with strict code quality standards
 ✅ **GitHub Actions CI/CD** with Python 3.11-3.14 matrix testing
-✅ **Modern CLI interface** with subcommands (init, daemon, add, tui)
+✅ **Modern CLI interface** with subcommands (init, daemon, add, tui, webui)
 ✅ **Terminal User Interface (TUI)** with keyboard-driven queue management
+✅ **Web User Interface (Web UI)** with HTMX-powered responsive dashboard
 ✅ **ISC License** for open-source distribution
 ✅ **Comprehensive documentation** with updated usage examples
 ✅ **User-friendly configuration** with platformdirs integration and init command
@@ -90,7 +104,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue functionality with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] **Comprehensive unit test suite (111 tests)**
+- [x] **Comprehensive unit test suite (144 tests)**
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -99,6 +113,7 @@ Table: `downloads`
 - [x] **Centralized Queue class for consolidated queue handling**
 - [x] **Configuration management improvements with init command**
 - [x] **Terminal User Interface (TUI) with Textual library for interactive queue management**
+- [x] **Web User Interface (Web UI) with Flask and HTMX for responsive browser-based queue management**
 
 ### ✅ Database Maintenance Features (Complete)
 - [x] **Queue viewing commands** - List pending, failed, downloaded items with filters
@@ -112,7 +127,6 @@ Table: `downloads`
 
 ### 🔮 Optional Future Enhancements
 - [ ] Thumbnail download and embedding
-- [ ] Web UI for monitoring downloads
 - [ ] REST API for adding URLs
 - [ ] Email/webhook notifications on completion
 - [ ] Download progress tracking
@@ -138,7 +152,9 @@ pylint yt_dl_manager
 - **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
-- **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
+- **Web UI Tests (11 cases)**: Flask route handlers, fragment rendering, form validation, background task submission
+- **Web UI Background Tests (1 case)**: ThreadPoolExecutor integration for non-blocking downloads
+- **Quality Metrics**: 100% test pass rate (144/144), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.11, 3.12, 3.13, 3.14
@@ -198,6 +214,18 @@ pylint yt_dl_manager
 - Full file path display in completed downloads table for better file management
 - Comprehensive test coverage with 11 unit tests for TUI functionality
 - Cross-platform compatibility (Linux, macOS, Windows)
+
+**Web User Interface (Web UI)**: Implemented responsive browser-based interface using Flask and HTMX:
+- Server-rendered HTML with HTMX for dynamic AJAX interactions without page reloads
+- Auto-refreshing dashboard sections polling every 2 seconds for real-time updates
+- Add URLs via form submission with Out-of-Band (OOB) toast notifications
+- Download, retry, and remove actions per row with immediate visual feedback
+- Status bar showing live queue counts (pending, downloading, completed, failed)
+- Mobile-first responsive CSS with custom properties for theming
+- Background downloads via ThreadPoolExecutor to prevent HTTP request blocking
+- Safe concurrent operation with daemon via atomic `claim_pending_for_download()`
+- Comprehensive test coverage with 12 unit tests for route handlers and background tasks
+- i18n-ready with all user-facing strings wrapped in `_()` for future translation
 
 **Pip Installable Package**: Converted project to a proper Python package:
 - Created `pyproject.toml` with modern packaging configuration

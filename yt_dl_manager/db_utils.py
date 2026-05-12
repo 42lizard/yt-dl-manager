@@ -290,6 +290,23 @@ class DatabaseUtils:
             raise sqlite3.OperationalError(
                 f"Failed to get queue status: {e}") from e
 
+    def get_download_by_id(self, download_id):
+        """Get a single download by its ID.
+
+        Args:
+            download_id (int): The database row ID.
+
+        Returns:
+            dict or None: Download record as dict, or None if not found.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM downloads WHERE id = ?", (download_id,))
+        row = cur.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
     def get_downloads_by_status(self, status, limit=None, sort_by='timestamp_requested',
                                 order='DESC', **filters):
         """Get downloads filtered by status with optional filters.

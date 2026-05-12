@@ -3,6 +3,7 @@
 import logging
 import yt_dlp
 from .config import config
+from .i18n import _
 
 logger = logging.getLogger(__name__)
 
@@ -46,3 +47,24 @@ def download_media(queue, row_id, url, retries, max_retries=3):
             )
             logger.warning(retry_msg)
             print(retry_msg)  # Also print for daemon output
+    except Exception as err:
+        queue.increment_retries(row_id)
+        logger.error(
+            "Unexpected error during download of %s: %s", url, err, exc_info=True
+        )
+        if retries + 1 >= max_retries:
+            queue.fail_download(row_id)
+            error_msg = _(
+                "Download failed for {url} after {attempts} attempts "
+                "due to an unexpected error. Check the log for details."
+            ).format(url=url, attempts=max_retries)
+            logger.error(error_msg)
+            print(error_msg)
+        else:
+            queue.set_status_to_pending(row_id)
+            retry_msg = _(
+                "Unexpected error for {url}, will retry "
+                "(attempt {current}/{max_retries}). Check the log for details."
+            ).format(url=url, current=retries + 1, max_retries=max_retries)
+            logger.warning(retry_msg)
+            print(retry_msg)

@@ -1,0 +1,26 @@
+{% if downloads %}
+<table>
+    <thead>
+        <tr>
+            <th>{{ _('ID') }}</th>
+            <th>{{ _('URL') }}</th>
+            <th>{{ _('Status') }}</th>
+            <th>{{ _('Started') }}</th>
+            <th>{{ _('Retries') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in downloads %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.url_display }}</td>
+            <td>{{ d.status }}</td>
+            <td>{{ d.timestamp_display }}</td>
+            <td>{{ d.retries }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-state">{{ _('No downloads in progress') }}</p>
+{% endif %}

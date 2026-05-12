@@ -1,0 +1,28 @@
+{% if downloads %}
+<table>
+    <thead>
+        <tr>
+            <th>{{ _('ID') }}</th>
+            <th>{{ _('URL') }}</th>
+            <th>{{ _('Downloaded') }}</th>
+            <th>{{ _('File') }}</th>
+            <th>{{ _('Actions') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in downloads %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.url_display }}</td>
+            <td>{{ d.timestamp_display }}</td>
+            <td>{{ d.filename_display }}</td>
+            <td>
+                <button class="btn btn-secondary" hx-post="/retry/{{ d.id }}" hx-swap="none">{{ _('Retry') }}</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-state">{{ _('No completed downloads') }}</p>
+{% endif %}
