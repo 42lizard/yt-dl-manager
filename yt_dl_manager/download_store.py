@@ -366,31 +366,6 @@ class DownloadStore:
         # Convert to list of dictionaries
         return [dict(row) for row in rows]
 
-    def get_downloads_missing_files(self):
-        """Get downloaded items where the file no longer exists.
-
-        Returns:
-            list: List of download records with missing files.
-        """
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        cur.execute("""
-            SELECT * FROM downloads 
-            WHERE status = ? AND final_filename IS NOT NULL
-        """, (DownloadStatus.DOWNLOADED.value,))
-
-        rows = cur.fetchall()
-        conn.close()
-
-        missing_files = []
-        for row in rows:
-            if not os.path.exists(row['final_filename']):
-                missing_files.append(dict(row))
-
-        return missing_files
-
     def remove_downloads_by_status(self, status, older_than_days=None, dry_run=False):
         """Remove downloads by status with optional age filter.
 
@@ -631,44 +606,3 @@ class DownloadStore:
             return output.getvalue()
 
         raise ValueError("output_format must be 'json' or 'csv'")
-
-    def get_storage_usage_summary(self):
-        """Get storage usage summary for downloaded files.
-
-        Returns:
-            dict: Storage statistics.
-        """
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        cur.execute("""
-            SELECT final_filename FROM downloads 
-            WHERE status = ? AND final_filename IS NOT NULL
-        """, (DownloadStatus.DOWNLOADED.value,))
-
-        rows = cur.fetchall()
-        conn.close()
-
-        total_size = 0
-        files_found = 0
-        files_missing = 0
-
-        for row in rows:
-            filename = row['final_filename']
-            if os.path.exists(filename):
-                try:
-                    total_size += os.path.getsize(filename)
-                    files_found += 1
-                except OSError:
-                    files_missing += 1
-            else:
-                files_missing += 1
-
-        return {
-            'total_size_bytes': total_size,
-            'total_size_mb': total_size / (1024 * 1024),
-            'files_found': files_found,
-            'files_missing': files_missing,
-            'total_files': files_found + files_missing
-        }

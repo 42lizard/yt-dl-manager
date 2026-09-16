@@ -293,16 +293,6 @@ class TestDownloadStore(unittest.TestCase):
         self.assertEqual(len(downloads), 1)
         self.assertEqual(downloads[0]['id'], 1)
 
-    def test_get_downloads_missing_files(self):
-        """Test get_downloads_missing_files method."""
-        # Add and mark as downloaded with non-existent file
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.mark_downloaded(1, "/nonexistent/file.mp4", "youtube")
-
-        missing = self.db_utils.get_downloads_missing_files()
-        self.assertEqual(len(missing), 1)
-        self.assertEqual(missing[0]['id'], 1)
-
     def test_remove_downloads_by_status(self):
         """Test remove_downloads_by_status method."""
         # Add test data
@@ -434,20 +424,6 @@ class TestDownloadStore(unittest.TestCase):
         """Test export_data method with invalid format."""
         with self.assertRaises(ValueError):
             self.db_utils.export_data('xml')
-
-    def test_get_storage_usage_summary(self):
-        """Test get_storage_usage_summary method."""
-        # Add and mark as downloaded with non-existent file
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.mark_downloaded(1, "/nonexistent/file.mp4", "youtube")
-
-        stats = self.db_utils.get_storage_usage_summary()
-
-        self.assertEqual(stats['total_files'], 1)
-        self.assertEqual(stats['files_missing'], 1)
-        self.assertEqual(stats['files_found'], 0)
-        self.assertEqual(stats['total_size_bytes'], 0)
-
 
 if __name__ == '__main__':
     unittest.main()
