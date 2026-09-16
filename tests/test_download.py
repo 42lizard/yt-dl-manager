@@ -19,6 +19,11 @@ class TestDownloadLifecycle(unittest.TestCase):
     """Exercise lifecycle behavior through its public interface."""
 
     def setUp(self):
+        config_patcher = patch('yt_dl_manager.download.config')
+        mock_config = config_patcher.start()
+        self.addCleanup(config_patcher.stop)
+        mock_config['DEFAULT']['target_folder'] = tempfile.gettempdir()
+
         file_descriptor, self.db_path = tempfile.mkstemp()
         os.close(file_descriptor)
         self.addCleanup(os.unlink, self.db_path)
@@ -42,9 +47,7 @@ class TestDownloadLifecycle(unittest.TestCase):
         ytdl.extract_info.return_value = info
         ytdl.prepare_filename.return_value = '/tmp/video.mp4'
 
-        with patch('yt_dl_manager.download.config') as mock_config:
-            mock_config['DEFAULT']['target_folder'] = '/tmp'
-            outcome = self.downloads.execute(download_id)
+        outcome = self.downloads.execute(download_id)
 
         self.assertEqual(outcome.kind, DownloadOutcomeKind.COMPLETED)
         self.assertEqual(outcome.filename, '/tmp/video.mp4')
