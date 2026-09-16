@@ -2,12 +2,14 @@
 
 import unittest
 from argparse import Namespace
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 from yt_dl_manager.__main__ import (
     _handle_remove_failed,
     _print_downloads_table,
 )
+from yt_dl_manager.download_store import Download, DownloadStatus
 
 
 class TestMaintenanceCli(unittest.TestCase):
@@ -18,15 +20,15 @@ class TestMaintenanceCli(unittest.TestCase):
     def test_remove_failed_can_be_cancelled(self, mock_print, _):
         """A rejected confirmation performs only the dry run."""
         store = MagicMock()
-        store.remove_downloads_by_status.return_value = 2
+        store.remove_by_status.return_value = 2
 
         _handle_remove_failed(
             store,
             Namespace(dry_run=False, older_than=None),
         )
 
-        store.remove_downloads_by_status.assert_called_once_with(
-            'failed',
+        store.remove_by_status.assert_called_once_with(
+            DownloadStatus.FAILED,
             older_than_days=None,
             dry_run=True,
         )
@@ -36,13 +38,18 @@ class TestMaintenanceCli(unittest.TestCase):
     def test_pending_downloads_are_rendered(self, mock_print):
         """The CLI adapter renders persisted Download facts."""
         _print_downloads_table(
-            [{
-                'id': 7,
-                'url': 'https://example.com/video',
-                'status': 'pending',
-                'timestamp_requested': '2026-09-16T20:00:00+00:00',
-                'retries': 1,
-            }],
+            [Download(
+                id=7,
+                url='https://example.com/video',
+                status=DownloadStatus.PENDING,
+                requested_at=datetime.fromisoformat(
+                    '2026-09-16T20:00:00+00:00'
+                ),
+                completed_at=None,
+                filename=None,
+                extractor=None,
+                retries=1,
+            )],
             'pending',
         )
 

@@ -2,7 +2,12 @@
 
 import logging
 import time
-from .download_store import DownloadStore
+from .download_store import (
+    DownloadQuery,
+    DownloadSort,
+    DownloadStatus,
+    DownloadStore,
+)
 from .config import get_config_path
 from .download import DownloadLifecycle, DownloadOutcomeKind
 
@@ -48,13 +53,19 @@ class YTDLManagerDaemon:
         print(startup_msg)  # Print for daemon visibility
         try:
             while self.running:
-                pending = self.store.poll_pending()
+                pending = self.store.list_downloads(DownloadQuery(
+                    status=DownloadStatus.PENDING,
+                    sort=DownloadSort.ID,
+                    descending=False,
+                ))
                 if pending:
                     pending_msg = f'Found {len(pending)} pending downloads.'
                     logger.info(pending_msg)
                     print(pending_msg)  # Print for daemon visibility
-                    for row_id, _, _ in pending:
-                        self._print_outcome(self.downloads.execute(row_id))
+                    for download in pending:
+                        self._print_outcome(
+                            self.downloads.execute(download.id)
+                        )
                 else:
                     logger.debug('No pending downloads.')
                 time.sleep(POLL_INTERVAL)

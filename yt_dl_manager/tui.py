@@ -2,7 +2,6 @@
 
 import logging
 import asyncio
-from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import DataTable, Header, Footer, Input, Label, Button
@@ -11,7 +10,12 @@ from textual.message import Message
 from textual.binding import Binding
 # from textual.widgets._data_table import RowKey
 
-from .download_store import DownloadStore
+from .download_store import (
+    DownloadQuery,
+    DownloadSort,
+    DownloadStatus,
+    DownloadStore,
+)
 from .download import DownloadLifecycle, DownloadOutcomeKind
 from .i18n import _ as gettext
 
@@ -301,38 +305,31 @@ class TUIApp(App):
 
         try:
             # Get pending downloads with full information
-            pending_downloads = self.store.get_downloads_by_status(
-                'pending',
-                sort_by='timestamp_requested',
-                order='DESC'
+            pending_downloads = self.store.list_downloads(
+                DownloadQuery(DownloadStatus.PENDING)
             )
 
             restore_row = None
             for download in pending_downloads:
-                # Format timestamp
-                requested = download.get('timestamp_requested', '')
-                if requested:
-                    try:
-                        dt = datetime.fromisoformat(
-                            requested.replace('Z', '+00:00'))
-                        requested = dt.strftime('%Y-%m-%d %H:%M')
-                    except (ValueError, AttributeError):
-                        requested = str(requested)[:16]
+                requested = (
+                    download.requested_at.strftime('%Y-%m-%d %H:%M')
+                    if download.requested_at else ''
+                )
 
                 # Truncate long URLs for display
-                url = download.get('url', '')
+                url = download.url
                 display_url = url[:50] + '...' if len(url) > 50 else url
 
                 row_key = pending_table.add_row(
-                    str(download.get('id', '')),
+                    str(download.id),
                     display_url,
-                    download.get('status', ''),
+                    download.status.value,
                     requested,
-                    str(download.get('retries', 0))
+                    str(download.retries),
                 )
 
                 # Check if this was the previously selected row
-                if current_selection and download.get('id') == current_selection:
+                if current_selection and download.id == current_selection:
                     restore_row = row_key
 
             # Restore selection if possible, or select first row
@@ -366,7 +363,7 @@ class TUIApp(App):
         try:
             # If we have rows and downloads, set the selected_pending_id to the first download's ID
             if pending_downloads and pending_table.row_count > 0:
-                self.ui_state['selected_pending_id'] = pending_downloads[0].get('id')
+                self.ui_state['selected_pending_id'] = pending_downloads[0].id
                 self.logger.debug(
                     "Selected first pending ID: %s", self.ui_state['selected_pending_id'])
                 # Let the table handle cursor positioning naturally
@@ -379,32 +376,25 @@ class TUIApp(App):
         inprogress_table.clear()
 
         try:
-            inprogress_downloads = self.store.get_downloads_by_status(
-                'downloading',
-                sort_by='timestamp_requested',
-                order='DESC',
+            inprogress_downloads = self.store.list_downloads(
+                DownloadQuery(DownloadStatus.DOWNLOADING)
             )
             for download in inprogress_downloads:
-                # Format timestamp
-                started = download.get('timestamp_requested', '')
-                if started:
-                    try:
-                        dt = datetime.fromisoformat(
-                            started.replace('Z', '+00:00'))
-                        started = dt.strftime('%Y-%m-%d %H:%M')
-                    except (ValueError, AttributeError):
-                        started = str(started)[:16]
+                started = (
+                    download.requested_at.strftime('%Y-%m-%d %H:%M')
+                    if download.requested_at else ''
+                )
 
                 # Truncate long URLs for display
-                url = download.get('url', '')
+                url = download.url
                 display_url = url[:50] + '...' if len(url) > 50 else url
 
                 inprogress_table.add_row(
-                    str(download.get('id', '')),
+                    str(download.id),
                     display_url,
-                    download.get('status', ''),
+                    download.status.value,
                     started,
-                    str(download.get('retries', 0))
+                    str(download.retries),
                 )
         except (ValueError, RuntimeError) as e:
             self.logger.error(
@@ -417,29 +407,23 @@ class TUIApp(App):
 
         try:
             # Get completed downloads using existing database methods
-            downloads = self.store.get_downloads_by_status(
-                'downloaded',
+            downloads = self.store.list_downloads(DownloadQuery(
+                status=DownloadStatus.DOWNLOADED,
                 limit=self.recent_limit,
-                sort_by='timestamp_downloaded',
-                order='DESC'
-            )
+                sort=DownloadSort.COMPLETED,
+            ))
 
             for download in downloads:
-                # Format timestamp
-                downloaded = download.get('timestamp_downloaded', '')
-                if downloaded:
-                    try:
-                        dt = datetime.fromisoformat(
-                            downloaded.replace('Z', '+00:00'))
-                        downloaded = dt.strftime('%Y-%m-%d %H:%M')
-                    except (ValueError, AttributeError):
-                        downloaded = str(downloaded)[:16]
+                downloaded = (
+                    download.completed_at.strftime('%Y-%m-%d %H:%M')
+                    if download.completed_at else ''
+                )
 
                 # Truncate long URLs and filenames for display
-                url = download.get('url', '')
+                url = download.url
                 display_url = url[:40] + '...' if len(url) > 40 else url
 
-                filename = download.get('final_filename', '')
+                filename = str(download.filename) if download.filename else ''
                 if filename:
                     # Show the full path to the file
                     display_filename = filename[:60] + \
@@ -448,7 +432,7 @@ class TUIApp(App):
                     display_filename = 'N/A'
 
                 completed_table.add_row(
-                    str(download.get('id', '')),
+                    str(download.id),
                     display_url,
                     downloaded,
                     display_filename

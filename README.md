@@ -17,9 +17,9 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🔒 **Security hardened** - Protected against SQL injection attacks
 - 🎛️ **User-friendly config** - Automatic configuration in user directories with `init` command
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
-- 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
+- 🏗️ **Deep Download persistence** - SQLite details stay behind immutable Download values
 - 🗃️ **Database maintenance** - Comprehensive commands for queue and file management
-- 🧪 **Comprehensive testing** - 104 unit tests with 100% pass rate
+- 🧪 **Focused testing** - 54 behavior tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
@@ -354,9 +354,7 @@ yt-dl-manager/
 │   ├── __main__.py        # CLI entry point with comprehensive subcommands
 │   ├── daemon.py          # Main daemon service
 │   ├── add_to_queue.py    # URL addition logic
-│   ├── queue.py           # Centralized queue management class
-│   ├── db_utils.py        # Database schema utilities with DownloadStatus enum
-│   ├── maintenance.py     # Database maintenance commands
+│   ├── download_store.py  # Deep SQLite persistence for Downloads
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
 │   ├── download.py        # Download lifecycle and yt-dlp integration
@@ -372,9 +370,8 @@ yt-dl-manager/
 │   ├── test_daemon.py     # Daemon adapter tests (3 test cases)
 │   ├── test_download.py   # Download lifecycle tests (5 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (7 test cases)
-│   ├── test_queue.py      # Queue class tests (20 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (27 test cases)
-│   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
+│   ├── test_download_store.py # Download persistence tests (14 test cases)
+│   ├── test_cli.py        # Maintenance CLI adapter tests (2 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
 │   ├── test_tui.py         # TUI tests (12 test cases)
 │   ├── test_i18n.py       # Internationalization tests (8 test cases)
@@ -388,13 +385,12 @@ yt-dl-manager/
 - **Daemon Tests (3 cases)**: Polling, lifecycle delegation, and shutdown behavior
 - **Download Tests (5 cases)**: Claiming, completion, retries, concurrency, and unexpected errors
 - **CLI Tests (7 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
-- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (27 cases)**: Extended database operations, maintenance functions, data integrity
-- **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
+- **Download Store Tests (14 cases)**: Persistence, lifecycle transitions, maintenance mutations, and export
+- **Maintenance CLI Tests (2 cases)**: Confirmation and terminal rendering
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
 - **TUI Tests (12 cases)**: Terminal User Interface functionality, lifecycle outcomes, and modal dialogs
 - **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
-- **Quality Metrics**: 100% test pass rate (104/104), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (54/54), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`

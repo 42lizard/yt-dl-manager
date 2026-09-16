@@ -1,429 +1,223 @@
-"""Tests for the Download persistence module."""
+"""Behavior tests for the Download persistence interface."""
 
-import os
+import csv
+import io
 import json
-import sqlite3
+import os
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime
+from pathlib import Path
 
-from yt_dl_manager.download_store import DownloadStore
+from yt_dl_manager.download_store import (
+    Download,
+    DownloadQuery,
+    DownloadSort,
+    DownloadStatus,
+    DownloadStore,
+)
 
 
 class TestDownloadStore(unittest.TestCase):
-    """Exercise persistence through the DownloadStore interface."""
+    """Exercise persisted Download behavior through one interface."""
 
     def setUp(self):
-        """Set up test fixtures before each test method."""
-        # Create a temporary database file for testing
-        self.test_db_fd, self.test_db_path = tempfile.mkstemp()
-        self.addCleanup(os.close, self.test_db_fd)
-        self.addCleanup(os.unlink, self.test_db_path)
+        file_descriptor, self.db_path = tempfile.mkstemp()
+        os.close(file_descriptor)
+        self.addCleanup(os.unlink, self.db_path)
+        self.store = DownloadStore(self.db_path)
 
-        self.db_utils = DownloadStore(self.test_db_path)
-
-    def test_ensure_schema_creates_table(self):
-        """Test that schema creation works properly."""
-        # Verify table exists by querying it
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='downloads'")
-        table_exists = cur.fetchone() is not None
-        conn.close()
-        self.assertTrue(table_exists)
-
-    def test_poll_pending_empty(self):
-        """Test polling when no pending downloads exist."""
-        result = self.db_utils.poll_pending()
-        self.assertEqual(result, [])
-
-    def test_poll_pending_with_data(self):
-        """Test polling with pending downloads."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested, retries) "
-            "VALUES (?, ?, ?, ?)",
-            ("https://test1.com", "pending",
-             datetime.now(timezone.utc).isoformat(), 0)
+    def _add(self, suffix='video'):
+        success, _, download_id = self.store.add_url(
+            f'https://example.com/{suffix}'
         )
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested, retries) "
-            "VALUES (?, ?, ?, ?)",
-            ("https://test2.com", "downloaded",
-             datetime.now(timezone.utc).isoformat(), 0)
-        )
-        conn.commit()
-        conn.close()
-
-        result = self.db_utils.poll_pending()
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0][1], "https://test1.com")  # URL
-        self.assertEqual(result[0][2], 0)  # retries
-
-    def test_mark_downloaded(self):
-        """Test marking a download as downloaded with metadata."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "downloading",
-             datetime.now(timezone.utc).isoformat())
-        )
-        conn.commit()
-        row_id = cur.lastrowid
-        conn.close()
-
-        # Mark as downloaded
-        test_filename = "/path/to/file.mp4"
-        test_extractor = "youtube"
-        self.db_utils.mark_downloaded(row_id, test_filename, test_extractor)
-
-        # Verify all fields were updated
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT status, final_filename, extractor, timestamp_downloaded "
-            "FROM downloads WHERE id = ?",
-            (row_id,)
-        )
-        row = cur.fetchone()
-        conn.close()
-
-        self.assertEqual(row[0], "downloaded")
-        self.assertEqual(row[1], test_filename)
-        self.assertEqual(row[2], test_extractor)
-        self.assertIsNotNone(row[3])  # timestamp should be set
-
-    def test_mark_failed(self):
-        """Test marking a download as failed."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "downloading",
-             datetime.now(timezone.utc).isoformat())
-        )
-        conn.commit()
-        row_id = cur.lastrowid
-        conn.close()
-
-        # Mark as failed
-        self.db_utils.mark_failed(row_id)
-
-        # Verify status changed
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM downloads WHERE id = ?", (row_id,))
-        status = cur.fetchone()[0]
-        conn.close()
-        self.assertEqual(status, "failed")
-
-    def test_increment_retries(self):
-        """Test incrementing retry counter."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested, retries) "
-            "VALUES (?, ?, ?, ?)",
-            ("https://test.com", "pending", datetime.now(timezone.utc).isoformat(), 1)
-        )
-        conn.commit()
-        row_id = cur.lastrowid
-        conn.close()
-
-        # Increment retries
-        self.db_utils.increment_retries(row_id)
-
-        # Verify retries incremented
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT retries FROM downloads WHERE id = ?", (row_id,))
-        retries = cur.fetchone()[0]
-        conn.close()
-        self.assertEqual(retries, 2)
-
-    def test_set_status_to_pending(self):
-        """Test setting status back to pending."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "failed", datetime.now(timezone.utc).isoformat())
-        )
-        conn.commit()
-        row_id = cur.lastrowid
-        conn.close()
-
-        # Set to pending
-        self.db_utils.set_status_to_pending(row_id)
-
-        # Verify status changed
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM downloads WHERE id = ?", (row_id,))
-        status = cur.fetchone()[0]
-        conn.close()
-        self.assertEqual(status, "pending")
-
-    def test_add_url_new(self):
-        """Test adding a new URL."""
-        test_url = "https://www.youtube.com/watch?v=test"
-        success, message, row_id = self.db_utils.add_url(test_url)
-
         self.assertTrue(success)
-        self.assertEqual(message, f"URL added to queue: {test_url}")
-        self.assertIsInstance(row_id, int)
+        return download_id
 
-        # Verify in database
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT url, status FROM downloads WHERE url = ?", (test_url,))
-        row = cur.fetchone()
-        conn.close()
+    def _fail(self, download_id):
+        claimed, _ = self.store.claim_pending_for_download(download_id)
+        self.assertTrue(claimed)
+        return self.store.record_failed_attempt(download_id, 1)
 
-        self.assertIsNotNone(row)
-        self.assertEqual(row[0], test_url)
-        self.assertEqual(row[1], "pending")
+    def test_add_and_list_returns_download_values(self):
+        """Persisted rows become immutable domain values."""
+        download_id = self._add()
 
-    def test_add_url_duplicate(self):
-        """Test adding a duplicate URL."""
-        test_url = "https://www.youtube.com/watch?v=duplicate"
+        downloads = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.PENDING)
+        )
 
-        # Add first time
-        self.db_utils.add_url(test_url)
-
-        # Add second time
-        success, message, row_id = self.db_utils.add_url(test_url)
-
-        self.assertFalse(success)
-        self.assertIn("URL already exists in queue", message)
-        self.assertIn(test_url, message)
-        self.assertIsInstance(row_id, int)
-
-    def test_queue_length_empty(self):
-        """Test queue length when empty."""
-        length = self.db_utils.queue_length()
-        self.assertEqual(length, 0)
-
-    def test_queue_length_with_items(self):
-        """Test queue length with items."""
-        # Add multiple URLs
-        urls = [
-            "https://test1.com",
-            "https://test2.com",
-            "https://test3.com"
-        ]
-
-        for url in urls:
-            self.db_utils.add_url(url)
-
-        length = self.db_utils.queue_length()
-        self.assertEqual(length, 3)
-
-    def test_get_queue_status_empty(self):
-        """Test getting queue status when database is empty."""
-        status = self.db_utils.get_queue_status()
-        expected = {
-            'pending': 0,
-            'downloading': 0,
-            'downloaded': 0,
-            'failed': 0
-        }
-        self.assertEqual(status, expected)
-
-    def test_get_queue_status_with_data(self):
-        """Test getting queue status with various download states."""
-        # Add multiple URLs
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
-        self.db_utils.add_url("https://example.com/video3")
-        self.db_utils.add_url("https://example.com/video4")
-
-        # Set different statuses
-        self.db_utils.claim_pending_for_download(1)
-        self.db_utils.mark_downloaded(2, "video2.mp4", "youtube")
-        self.db_utils.mark_failed(3)
-        # Leave video4 as pending
-
-        status = self.db_utils.get_queue_status()
-        self.assertEqual(status['pending'], 1)
-        self.assertEqual(status['downloading'], 1)
-        self.assertEqual(status['downloaded'], 1)
-        self.assertEqual(status['failed'], 1)
-
-    def test_get_downloads_by_status(self):
-        """Test get_downloads_by_status method."""
-        # Add test data with different statuses
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
-        self.db_utils.add_url("https://example.com/video3")
-
-        # Mark one as failed
-        self.db_utils.mark_failed(1)
-
-        # Test getting pending downloads
-        pending = self.db_utils.get_downloads_by_status('pending')
-        self.assertEqual(len(pending), 2)
-
-        # Test getting failed downloads
-        failed = self.db_utils.get_downloads_by_status('failed')
-        self.assertEqual(len(failed), 1)
-        self.assertEqual(failed[0]['id'], 1)
-
-    def test_get_downloads_by_status_with_filters(self):
-        """Test get_downloads_by_status with filters."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
-
-        # Increment retries for one
-        self.db_utils.increment_retries(1)
-
-        # Test filter by retry count
-        downloads = self.db_utils.get_downloads_by_status(
-            'pending', retry_count=1)
         self.assertEqual(len(downloads), 1)
-        self.assertEqual(downloads[0]['id'], 1)
+        self.assertIsInstance(downloads[0], Download)
+        self.assertEqual(downloads[0].id, download_id)
+        self.assertIsInstance(downloads[0].requested_at, datetime)
+        with self.assertRaises(AttributeError):
+            downloads[0].url = 'https://example.com/changed'
 
-    def test_remove_downloads_by_status(self):
-        """Test remove_downloads_by_status method."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
+    def test_invalid_and_duplicate_urls_are_rejected(self):
+        """URL validation and uniqueness remain inside the store."""
+        success, message, download_id = self.store.add_url('not-a-url')
+        self.assertFalse(success)
+        self.assertIn('Invalid URL', message)
+        self.assertIsNone(download_id)
 
-        # Mark as failed
-        self.db_utils.mark_failed(1)
-        self.db_utils.mark_failed(2)
+        existing_id = self._add()
+        success, message, duplicate_id = self.store.add_url(
+            'https://example.com/video'
+        )
+        self.assertFalse(success)
+        self.assertIn('already exists', message)
+        self.assertEqual(duplicate_id, existing_id)
 
-        # Test dry run
-        count = self.db_utils.remove_downloads_by_status(
-            'failed', dry_run=True)
-        self.assertEqual(count, 2)
+    def test_claim_is_atomic_and_reports_current_download(self):
+        """Only a pending Download can be claimed."""
+        download_id = self._add()
 
-        # Verify nothing was removed
-        remaining = self.db_utils.get_downloads_by_status('failed')
-        self.assertEqual(len(remaining), 2)
+        claimed, download = self.store.claim_pending_for_download(download_id)
+        claimed_again, current = self.store.claim_pending_for_download(
+            download_id
+        )
 
-        # Test actual removal
-        count = self.db_utils.remove_downloads_by_status(
-            'failed', dry_run=False)
-        self.assertEqual(count, 2)
+        self.assertTrue(claimed)
+        self.assertEqual(download.status, DownloadStatus.DOWNLOADING)
+        self.assertFalse(claimed_again)
+        self.assertEqual(current.status, DownloadStatus.DOWNLOADING)
 
-        # Verify items were removed
-        remaining = self.db_utils.get_downloads_by_status('failed')
-        self.assertEqual(len(remaining), 0)
+    def test_failed_attempt_retries_then_fails(self):
+        """Attempt counting and status selection are one transition."""
+        download_id = self._add()
 
-    def test_remove_downloads_by_ids(self):
-        """Test remove_downloads_by_ids method."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
-        self.db_utils.add_url("https://example.com/video3")
+        self.store.claim_pending_for_download(download_id)
+        retry = self.store.record_failed_attempt(download_id, 2)
+        self.store.claim_pending_for_download(download_id)
+        failed = self.store.record_failed_attempt(download_id, 2)
 
-        # Test removal
-        count = self.db_utils.remove_downloads_by_ids([1, 3])
-        self.assertEqual(count, 2)
+        self.assertEqual(retry.status, DownloadStatus.PENDING)
+        self.assertEqual(retry.retries, 1)
+        self.assertEqual(failed.status, DownloadStatus.FAILED)
+        self.assertEqual(failed.retries, 2)
 
-        # Verify correct items were removed
-        remaining = self.db_utils.get_downloads_by_status('pending')
-        self.assertEqual(len(remaining), 1)
-        self.assertEqual(remaining[0]['id'], 2)
+    def test_completion_normalizes_filename_and_timestamp(self):
+        """Completion facts have stable Python types."""
+        download_id = self._add()
+        self.store.mark_downloaded(download_id, '/tmp/video.mp4', 'generic')
 
-    def test_remove_downloads_by_url_pattern(self):
-        """Test remove_downloads_by_url_pattern method."""
-        # Add test data
-        self.db_utils.add_url("https://youtube.com/watch?v=abc")
-        self.db_utils.add_url("https://vimeo.com/123456")
-        self.db_utils.add_url("https://youtube.com/watch?v=xyz")
+        download = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.DOWNLOADED)
+        )[0]
 
-        # Test removal by pattern
-        count = self.db_utils.remove_downloads_by_url_pattern("youtube.com")
-        self.assertEqual(count, 2)
+        self.assertEqual(download.filename, Path('/tmp/video.mp4'))
+        self.assertIsInstance(download.completed_at, datetime)
+        self.assertEqual(download.extractor, 'generic')
 
-        # Verify correct items were removed
-        remaining = self.db_utils.get_downloads_by_status('pending')
-        self.assertEqual(len(remaining), 1)
-        self.assertIn('vimeo.com', remaining[0]['url'])
+    def test_status_counts_include_empty_states(self):
+        """Every lifecycle state has a count."""
+        downloading_id = self._add('downloading')
+        failed_id = self._add('failed')
+        self._fail(failed_id)
+        self.store.claim_pending_for_download(downloading_id)
 
-    def test_reset_downloads_to_pending(self):
-        """Test reset_downloads_to_pending method."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
-        self.db_utils.add_url("https://example.com/video2")
+        counts = self.store.status_counts()
 
-        # Mark as failed and downloaded
-        self.db_utils.mark_failed(1)
-        self.db_utils.mark_downloaded(2, "/some/file.mp4", "youtube")
+        self.assertEqual(counts[DownloadStatus.DOWNLOADING], 1)
+        self.assertEqual(counts[DownloadStatus.FAILED], 1)
+        self.assertEqual(counts[DownloadStatus.PENDING], 0)
+        self.assertEqual(counts[DownloadStatus.DOWNLOADED], 0)
 
-        # Reset to pending
-        count = self.db_utils.reset_downloads_to_pending([1, 2])
-        self.assertEqual(count, 2)
+    def test_list_filters_and_sorts_with_domain_choices(self):
+        """Callers do not pass SQLite column names."""
+        first = self._add('first')
+        second = self._add('second')
+        self.store.claim_pending_for_download(first)
+        self.store.record_failed_attempt(first, 3)
 
-        # Verify status reset
-        pending = self.db_utils.get_downloads_by_status('pending')
-        self.assertEqual(len(pending), 2)
+        downloads = self.store.list_downloads(DownloadQuery(
+            status=DownloadStatus.PENDING,
+            sort=DownloadSort.RETRIES,
+            retries=1,
+            descending=False,
+        ))
 
-    def test_find_downloads_by_url_pattern(self):
-        """Test find_downloads_by_url_pattern method."""
-        # Add test data
-        self.db_utils.add_url("https://youtube.com/watch?v=abc")
-        self.db_utils.add_url("https://vimeo.com/123456")
+        self.assertEqual([download.id for download in downloads], [first])
+        self.assertNotEqual(first, second)
 
-        # Test finding by pattern
-        matches = self.db_utils.find_downloads_by_url_pattern("youtube")
+    def test_remove_by_status_supports_dry_run(self):
+        """Dry runs count without deleting Downloads."""
+        download_id = self._add()
+        self._fail(download_id)
+
+        preview = self.store.remove_by_status(
+            DownloadStatus.FAILED,
+            dry_run=True,
+        )
+        removed = self.store.remove_by_status(DownloadStatus.FAILED)
+
+        self.assertEqual(preview, 1)
+        self.assertEqual(removed, 1)
+        self.assertEqual(
+            self.store.list_downloads(DownloadQuery(DownloadStatus.FAILED)),
+            [],
+        )
+
+    def test_remove_by_identity_and_url(self):
+        """Both maintenance selection forms remove matching Downloads."""
+        first = self._add('first')
+        self._add('second')
+
+        self.assertEqual(self.store.remove([first]), 1)
+        self.assertEqual(self.store.remove_by_url('second'), 1)
+        self.assertEqual(self.store.status_counts()[DownloadStatus.PENDING], 0)
+
+    def test_reset_clears_completion_facts(self):
+        """Redownload resets state and stored media facts."""
+        download_id = self._add()
+        self.store.mark_downloaded(download_id, '/tmp/video.mp4', 'generic')
+
+        count = self.store.reset([download_id])
+        download = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.PENDING)
+        )[0]
+
+        self.assertEqual(count, 1)
+        self.assertIsNone(download.completed_at)
+        self.assertIsNone(download.filename)
+        self.assertEqual(download.retries, 0)
+
+    def test_find_by_url_returns_downloads(self):
+        """URL searches return the same Download representation."""
+        self._add('needle')
+        self._add('other')
+
+        matches = self.store.find_by_url('needle')
+
         self.assertEqual(len(matches), 1)
-        self.assertIn('youtube', matches[0]['url'])
+        self.assertIsInstance(matches[0], Download)
 
-    def test_cleanup_database(self):
-        """Test cleanup_database method."""
-        # Test dry run
-        stats = self.db_utils.cleanup_database(dry_run=True)
-        self.assertIn('orphaned_records', stats)
-        self.assertIn('space_saved_kb', stats)
-        self.assertIn('vacuum_performed', stats)
+    def test_cleanup_supports_preview_and_vacuum(self):
+        """Database cleanup remains available through the store."""
+        preview = self.store.cleanup_database(dry_run=True)
+        result = self.store.cleanup_database()
 
-        # Test actual cleanup
-        stats = self.db_utils.cleanup_database(dry_run=False)
-        self.assertTrue(stats['vacuum_performed'])
+        self.assertFalse(preview['vacuum_performed'])
+        self.assertTrue(result['vacuum_performed'])
 
-    def test_export_data_json(self):
-        """Test export_data method with JSON format."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
+    def test_export_preserves_json_and_csv_formats(self):
+        """Exports retain their documented serialized shapes."""
+        self._add()
 
-        result = self.db_utils.export_data('json')
-        data = json.loads(result)
+        json_data = json.loads(self.store.export_data('json'))
+        csv_data = list(csv.DictReader(io.StringIO(
+            self.store.export_data('csv')
+        )))
 
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['url'], "https://example.com/video1")
+        self.assertEqual(json_data[0]['status'], 'pending')
+        self.assertEqual(csv_data[0]['status'], 'pending')
 
-    def test_export_data_csv(self):
-        """Test export_data method with CSV format."""
-        # Add test data
-        self.db_utils.add_url("https://example.com/video1")
+    def test_export_rejects_unknown_format(self):
+        """Unsupported serialization remains a caller error."""
+        with self.assertRaisesRegex(ValueError, 'json.*csv'):
+            self.store.export_data('xml')
 
-        result = self.db_utils.export_data('csv')
-
-        self.assertIn('id,url,status', result)
-        self.assertIn('https://example.com/video1', result)
-
-    def test_export_data_empty(self):
-        """Test export_data method with no data."""
-        result = self.db_utils.export_data('csv')
-        self.assertEqual(result, "")
-
-    def test_export_data_invalid_format(self):
-        """Test export_data method with invalid format."""
-        with self.assertRaises(ValueError):
-            self.db_utils.export_data('xml')
 
 if __name__ == '__main__':
     unittest.main()

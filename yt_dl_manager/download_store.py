@@ -1,32 +1,65 @@
-"""Database utility functions and schema management for yt-dl-manager."""
+"""SQLite persistence for Downloads."""
 
 import re
 import sqlite3
 import datetime
-import os
 import json
 import csv
 import io
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
+from pathlib import Path
+from typing import Optional
 from .config import config
 
 
-class DownloadStatus(Enum):
-    """Enumeration for download status values."""
+class DownloadStatus(StrEnum):
+    """A Download's persisted lifecycle state."""
     PENDING = 'pending'
     DOWNLOADING = 'downloading'
     DOWNLOADED = 'downloaded'
     FAILED = 'failed'
 
 
-def sanitize_filename(filename):
-    """Sanitize filename to prevent path traversal and unsafe characters."""
-    filename = os.path.basename(filename)
-    filename = re.sub(r'[^A-Za-z0-9._-]', '_', filename)
-    return filename
+class DownloadSort(StrEnum):
+    """Domain-level ordering choices for Download reads."""
+    REQUESTED = 'requested'
+    COMPLETED = 'completed'
+    RETRIES = 'retries'
+    URL = 'url'
+    ID = 'id'
+    EXTRACTOR = 'extractor'
 
 
-def is_valid_url(url):
+@dataclass(frozen=True)
+# The persisted Download has eight domain facts by design.
+# pylint: disable=too-many-instance-attributes
+class Download:
+    """A Download returned through the persistence interface."""
+
+    id: int
+    url: str
+    status: DownloadStatus
+    requested_at: Optional[datetime.datetime]
+    completed_at: Optional[datetime.datetime]
+    filename: Optional[Path]
+    extractor: Optional[str]
+    retries: int
+
+
+@dataclass(frozen=True)
+class DownloadQuery:
+    """Domain-level choices for selecting Downloads."""
+
+    status: DownloadStatus
+    limit: Optional[int] = None
+    sort: DownloadSort = DownloadSort.REQUESTED
+    descending: bool = True
+    retries: Optional[int] = None
+    extractor: Optional[str] = None
+
+
+def _is_valid_url(url):
     """Validate that the URL is a proper http(s) URL."""
     url_pattern = re.compile(r"^https?://[^\s]+$")
     return isinstance(url, str) and url_pattern.match(url.strip())
@@ -50,6 +83,31 @@ CREATE TABLE IF NOT EXISTS downloads (
 class DownloadStore:
     """Persist Downloads in SQLite."""
 
+    @staticmethod
+    def _to_download(row):
+        """Translate a SQLite row into a Download."""
+        if row is None:
+            return None
+        requested = row['timestamp_requested']
+        completed = row['timestamp_downloaded']
+        filename = row['final_filename']
+        return Download(
+            id=row['id'],
+            url=row['url'],
+            status=DownloadStatus(row['status']),
+            requested_at=(
+                datetime.datetime.fromisoformat(requested)
+                if requested else None
+            ),
+            completed_at=(
+                datetime.datetime.fromisoformat(completed)
+                if completed else None
+            ),
+            filename=Path(filename) if filename else None,
+            extractor=row['extractor'],
+            retries=row['retries'],
+        )
+
     def _build_in_clause_placeholders(self, count):
         """Build a safe IN clause with the specified number of placeholders.
 
@@ -71,7 +129,7 @@ class DownloadStore:
         cur.execute(
             "UPDATE downloads SET status = ? "
             "WHERE id = ? AND status = ? "
-            "RETURNING id, url, retries, status",
+            "RETURNING *",
             (DownloadStatus.DOWNLOADING.value,
              row_id,
              DownloadStatus.PENDING.value))
@@ -79,13 +137,13 @@ class DownloadStore:
         claimed = row is not None
         if row is None:
             cur.execute(
-                "SELECT id, url, retries, status FROM downloads WHERE id = ?",
+                "SELECT * FROM downloads WHERE id = ?",
                 (row_id,),
             )
             row = cur.fetchone()
         conn.commit()
         conn.close()
-        return claimed, dict(row) if row else None
+        return claimed, self._to_download(row)
 
     def record_failed_attempt(self, row_id, max_attempts):
         """Atomically increment attempts and schedule retry or mark failed."""
@@ -97,7 +155,7 @@ class DownloadStore:
             "SET retries = retries + 1, status = CASE "
             "WHEN retries + 1 >= ? THEN ? ELSE ? END "
             "WHERE id = ? AND status = ? "
-            "RETURNING retries, status",
+            "RETURNING *",
             (
                 max_attempts,
                 DownloadStatus.FAILED.value,
@@ -109,7 +167,7 @@ class DownloadStore:
         row = cur.fetchone()
         conn.commit()
         conn.close()
-        return dict(row) if row else None
+        return self._to_download(row)
 
     def __init__(self, db_path=None):
         """Initialize the Download store with a database path.
@@ -133,21 +191,6 @@ class DownloadStore:
         except sqlite3.OperationalError:
             pass
 
-    def poll_pending(self):
-        """Fetch all pending downloads from the database.
-        Returns:
-            list: List of tuples (id, url, retries) for pending downloads.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id, url, retries FROM downloads WHERE status = ?",
-            (DownloadStatus.PENDING.value,)
-        )
-        rows = cur.fetchall()
-        conn.close()
-        return rows
-
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database.
         Args:
@@ -169,46 +212,6 @@ class DownloadStore:
         conn.commit()
         conn.close()
 
-    def mark_failed(self, row_id):
-        """Mark a download as 'failed' in the database.
-        Args:
-            row_id (int): The database row ID of the download.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE downloads SET status = ? WHERE id = ?",
-            (DownloadStatus.FAILED.value, row_id)
-        )
-        conn.commit()
-        conn.close()
-
-    def increment_retries(self, row_id):
-        """Increment the retry counter for a download in the database.
-        Args:
-            row_id (int): The database row ID of the download.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE downloads SET retries = retries + 1 WHERE id = ?", (row_id,))
-        conn.commit()
-        conn.close()
-
-    def set_status_to_pending(self, row_id):
-        """Set a download status back to 'pending' for retry.
-        Args:
-            row_id (int): The database row ID of the download.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE downloads SET status = ? WHERE id = ?",
-            (DownloadStatus.PENDING.value, row_id)
-        )
-        conn.commit()
-        conn.close()
-
     def add_url(self, media_url):
         """Add a media URL to the downloads queue.
         Args:
@@ -218,7 +221,7 @@ class DownloadStore:
             message is str, and row_id is int or None.
         """
         # Security: Validate URL before inserting
-        if not is_valid_url(media_url):
+        if not _is_valid_url(media_url):
             return False, "Invalid URL. Only http(s) URLs are allowed.", None
 
         conn = sqlite3.connect(self.db_path)
@@ -258,23 +261,11 @@ class DownloadStore:
         finally:
             conn.close()
 
-    def queue_length(self):
-        """Return the number of items in the queue.
-        Returns:
-            int: Total number of downloads in the database.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM downloads")
-        count = cur.fetchone()[0]
-        conn.close()
-        return count
-
-    def get_queue_status(self):
-        """Get queue statistics by status.
+    def status_counts(self):
+        """Count Downloads in each lifecycle state.
 
         Returns:
-            dict: Dictionary with counts for each status (pending, downloading, downloaded, failed).
+            dict: Counts keyed by DownloadStatus.
 
         Raises:
             sqlite3.OperationalError: If database connection or query fails.
@@ -291,86 +282,77 @@ class DownloadStore:
             conn.close()
 
             # Initialize all possible statuses with 0
-            status_counts = {
-                DownloadStatus.PENDING.value: 0,
-                DownloadStatus.DOWNLOADING.value: 0,
-                DownloadStatus.DOWNLOADED.value: 0,
-                DownloadStatus.FAILED.value: 0
+            counts = {
+                DownloadStatus.PENDING: 0,
+                DownloadStatus.DOWNLOADING: 0,
+                DownloadStatus.DOWNLOADED: 0,
+                DownloadStatus.FAILED: 0,
             }
 
             # Update with actual counts
             for status, count in results:
-                if status in status_counts:
-                    status_counts[status] = count
+                parsed_status = DownloadStatus(status)
+                if parsed_status in counts:
+                    counts[parsed_status] = count
 
-            return status_counts
+            return counts
         except sqlite3.OperationalError as e:
             raise sqlite3.OperationalError(
                 f"Failed to get queue status: {e}") from e
 
-    def get_downloads_by_status(self, status, limit=None, sort_by='timestamp_requested',
-                                order='DESC', **filters):
-        """Get downloads filtered by status with optional filters.
+    def list_downloads(self, query):
+        """Read Downloads using domain-level selection choices.
 
         Args:
-            status (str): Download status to filter by.
-            limit (int, optional): Maximum number of results.
-            sort_by (str): Field to sort by (timestamp_requested, retries, url, id).
-            order (str): Sort order (ASC, DESC).
-            **filters: Additional filters (retry_count, extractor).
+            query (DownloadQuery): Domain-level selection choices.
 
         Returns:
-            list: List of download records as dictionaries.
+            list: Immutable Download values.
         """
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # Enable column access by name
         cur = conn.cursor()
 
-        # Build query with filters
-        query = "SELECT * FROM downloads WHERE status = ?"
-        params = [status]
+        statement = "SELECT * FROM downloads WHERE status = ?"
+        params = [query.status.value]
 
-        if 'retry_count' in filters and filters['retry_count'] is not None:
-            query += " AND retries = ?"
-            params.append(filters['retry_count'])
+        if query.retries is not None:
+            statement += " AND retries = ?"
+            params.append(query.retries)
 
-        if 'extractor' in filters and filters['extractor']:
-            query += " AND extractor = ?"
-            params.append(filters['extractor'])
+        if query.extractor:
+            statement += " AND extractor = ?"
+            params.append(query.extractor)
 
         # Validate sort field using safe mapping
         valid_sort_fields = {
-            'timestamp_requested': 'timestamp_requested',
-            'retries': 'retries',
-            'url': 'url',
-            'id': 'id',
-            'timestamp_downloaded': 'timestamp_downloaded',
-            'extractor': 'extractor'
+            DownloadSort.REQUESTED: 'timestamp_requested',
+            DownloadSort.COMPLETED: 'timestamp_downloaded',
+            DownloadSort.RETRIES: 'retries',
+            DownloadSort.URL: 'url',
+            DownloadSort.ID: 'id',
+            DownloadSort.EXTRACTOR: 'extractor',
         }
-        safe_sort_by = valid_sort_fields.get(sort_by, 'timestamp_requested')
+        statement += (
+            f" ORDER BY {valid_sort_fields[query.sort]} "
+            f"{'DESC' if query.descending else 'ASC'}"
+        )
 
-        # Validate order using safe mapping
-        valid_orders = {'ASC': 'ASC', 'DESC': 'DESC'}
-        safe_order = valid_orders.get(order.upper(), 'DESC')
+        if query.limit:
+            statement += " LIMIT ?"
+            params.append(query.limit)
 
-        query += f" ORDER BY {safe_sort_by} {safe_order}"
-
-        if limit:
-            query += " LIMIT ?"
-            params.append(limit)
-
-        cur.execute(query, params)
+        cur.execute(statement, params)
         rows = cur.fetchall()
         conn.close()
 
-        # Convert to list of dictionaries
-        return [dict(row) for row in rows]
+        return [self._to_download(row) for row in rows]
 
-    def remove_downloads_by_status(self, status, older_than_days=None, dry_run=False):
+    def remove_by_status(self, status, older_than_days=None, dry_run=False):
         """Remove downloads by status with optional age filter.
 
         Args:
-            status (str): Status of downloads to remove.
+            status (DownloadStatus): Status of Downloads to remove.
             older_than_days (int, optional): Only remove items older than this many days.
             dry_run (bool): If True, return count without removing.
 
@@ -381,7 +363,7 @@ class DownloadStore:
         cur = conn.cursor()
 
         query = "SELECT COUNT(*) FROM downloads WHERE status = ?"
-        params = [status]
+        params = [status.value]
 
         if older_than_days:
             cutoff_date = (datetime.datetime.now() -
@@ -400,7 +382,7 @@ class DownloadStore:
         conn.close()
         return count
 
-    def remove_downloads_by_ids(self, download_ids, dry_run=False):
+    def remove(self, download_ids, dry_run=False):
         """Remove downloads by their database IDs.
 
         Args:
@@ -434,7 +416,7 @@ class DownloadStore:
         conn.close()
         return count
 
-    def remove_downloads_by_url_pattern(self, url_pattern, dry_run=False):
+    def remove_by_url(self, url_pattern, dry_run=False):
         """Remove downloads by URL pattern matching.
 
         Args:
@@ -459,7 +441,7 @@ class DownloadStore:
         conn.close()
         return count
 
-    def reset_downloads_to_pending(self, download_ids, reset_retries=True):
+    def reset(self, download_ids, reset_retries=True):
         """Reset downloads back to pending status.
 
         Args:
@@ -495,7 +477,7 @@ class DownloadStore:
         conn.close()
         return updated
 
-    def find_downloads_by_url_pattern(self, url_pattern):
+    def find_by_url(self, url_pattern):
         """Find downloads matching a URL pattern.
 
         Args:
@@ -513,7 +495,7 @@ class DownloadStore:
         rows = cur.fetchall()
         conn.close()
 
-        return [dict(row) for row in rows]
+        return [self._to_download(row) for row in rows]
 
     def cleanup_database(self, dry_run=False):
         """Perform database maintenance operations.
@@ -582,8 +564,9 @@ class DownloadStore:
         cur = conn.cursor()
 
         if status_filter:
+            status = DownloadStatus(status_filter)
             cur.execute("SELECT * FROM downloads WHERE status = ? ORDER BY id",
-                        [status_filter])
+                        [status.value])
         else:
             cur.execute("SELECT * FROM downloads ORDER BY id")
 

@@ -8,7 +8,11 @@ from unittest.mock import MagicMock, patch
 import yt_dlp
 
 from yt_dl_manager.download import DownloadLifecycle, DownloadOutcomeKind
-from yt_dl_manager.download_store import DownloadStore
+from yt_dl_manager.download_store import (
+    DownloadQuery,
+    DownloadStatus,
+    DownloadStore,
+)
 
 
 class TestDownloadLifecycle(unittest.TestCase):
@@ -44,8 +48,10 @@ class TestDownloadLifecycle(unittest.TestCase):
 
         self.assertEqual(outcome.kind, DownloadOutcomeKind.COMPLETED)
         self.assertEqual(outcome.filename, '/tmp/video.mp4')
-        records = self.store.get_downloads_by_status('downloaded')
-        self.assertEqual(records[0]['final_filename'], '/tmp/video.mp4')
+        records = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.DOWNLOADED)
+        )
+        self.assertEqual(str(records[0].filename), '/tmp/video.mp4')
         ytdl.extract_info.assert_called_once_with(
             'https://example.com/video',
             download=True,
@@ -71,8 +77,10 @@ class TestDownloadLifecycle(unittest.TestCase):
         self.assertEqual(second.attempts, 2)
         self.assertEqual(third.kind, DownloadOutcomeKind.FAILED)
         self.assertEqual(third.attempts, 3)
-        records = self.store.get_downloads_by_status('failed')
-        self.assertEqual(records[0]['retries'], 3)
+        records = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.FAILED)
+        )
+        self.assertEqual(records[0].retries, 3)
 
     def test_not_available_reports_current_status(self):
         """A competing claim produces a non-mutating outcome."""
@@ -96,8 +104,10 @@ class TestDownloadLifecycle(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'unexpected'):
             self.downloads.execute(download_id)
 
-        records = self.store.get_downloads_by_status('downloading')
-        self.assertEqual(records[0]['id'], download_id)
+        records = self.store.list_downloads(
+            DownloadQuery(DownloadStatus.DOWNLOADING)
+        )
+        self.assertEqual(records[0].id, download_id)
 
     def test_invalid_identity_is_rejected(self):
         """Invalid identities are programmer errors, not outcomes."""

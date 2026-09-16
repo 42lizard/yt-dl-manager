@@ -8,6 +8,7 @@ from typing import Optional
 import yt_dlp
 
 from .config import config
+from .download_store import DownloadStatus
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class DownloadLifecycle:
 
         claimed, download = self.store.claim_pending_for_download(download_id)
         if not claimed:
-            status = download['status'] if download else None
+            status = download.status.value if download else None
             return DownloadOutcome(
                 download_id,
                 DownloadOutcomeKind.NOT_AVAILABLE,
@@ -68,7 +69,7 @@ class DownloadLifecycle:
 
         try:
             with yt_dlp.YoutubeDL(options) as ydl:
-                info = ydl.extract_info(download['url'], download=True)
+                info = ydl.extract_info(download.url, download=True)
                 extractor = info.get('extractor', 'unknown')
                 filename = ydl.prepare_filename(info)
             self.store.mark_downloaded(download_id, filename, extractor)
@@ -95,13 +96,13 @@ class DownloadLifecycle:
 
             kind = (
                 DownloadOutcomeKind.FAILED
-                if transition['status'] == 'failed'
+                if transition.status is DownloadStatus.FAILED
                 else DownloadOutcomeKind.RETRY_SCHEDULED
             )
             return DownloadOutcome(
                 download_id,
                 kind,
                 error=str(error),
-                status=transition['status'],
-                attempts=transition['retries'],
+                status=transition.status.value,
+                attempts=transition.retries,
             )

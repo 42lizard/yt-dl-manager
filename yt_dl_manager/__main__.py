@@ -2,13 +2,19 @@
 
 import argparse
 import os
+import re
 import sys
 
 from .logging_config import setup_logging
 from .create_config import create_default_config
 from .daemon import main as daemon_main
 from .add_to_queue import main as add_to_queue_main
-from .download_store import DownloadStatus, DownloadStore, sanitize_filename
+from .download_store import (
+    DownloadQuery,
+    DownloadSort,
+    DownloadStatus,
+    DownloadStore,
+)
 from .tui import main as tui_main
 from .config import get_language_preference, set_language_preference
 from .i18n import _, setup_translation, get_available_languages
@@ -311,27 +317,24 @@ def _list_downloads(store, status, **options):
     if status == 'downloaded' and options.get('missing_files', False):
         return _missing_downloads(store)
 
-    filters = {
-        key: value
-        for key, value in options.items()
-        if key in ('retry_count', 'extractor')
-    }
-    return store.get_downloads_by_status(
+    return store.list_downloads(DownloadQuery(
         status=status,
         limit=options.get('limit'),
-        sort_by=options.get('sort_by', 'timestamp_requested'),
-        **filters,
-    )
+        sort=options.get('sort', DownloadSort.REQUESTED),
+        retries=options.get('retry_count'),
+        extractor=options.get('extractor'),
+    ))
 
 
 def _missing_downloads(store):
     """Return completed Downloads whose media file is missing."""
-    downloads = store.get_downloads_by_status(DownloadStatus.DOWNLOADED.value)
+    downloads = store.list_downloads(
+        DownloadQuery(DownloadStatus.DOWNLOADED)
+    )
     return [
         download
         for download in downloads
-        if download['final_filename']
-        and not os.path.exists(download['final_filename'])
+        if download.filename and not download.filename.exists()
     ]
 
 
@@ -340,7 +343,7 @@ def _storage_usage(downloads):
     sizes = []
     missing = 0
     for download in downloads:
-        filename = download['final_filename']
+        filename = download.filename
         if not filename:
             continue
         try:
@@ -359,16 +362,23 @@ def _format_display_text(text, max_length):
     return text[:max_length - 3] + '...' if len(text) > max_length else text
 
 
+def _sanitize_filename(filename):
+    """Make a Download filename safe for terminal display."""
+    return re.sub(r'[^A-Za-z0-9._-]', '_', filename.name)
+
+
 def _print_pending_downloads(downloads):
     """Print pending Downloads."""
     print(f"{'ID':<8} {'RETRIES':<8} {'REQUESTED':<20} {'URL':<40}")
     print("-" * 80)
     for download in downloads:
-        requested = download['timestamp_requested']
-        requested = requested[:16] if requested else 'N/A'
+        requested = (
+            download.requested_at.strftime('%Y-%m-%d %H:%M')
+            if download.requested_at else 'N/A'
+        )
         print(
-            f"{download['id']:<8} {download['retries']:<8} "
-            f"{requested:<20} {_format_display_text(download['url'], 40):<40}"
+            f"{download.id:<8} {download.retries:<8} "
+            f"{requested:<20} {_format_display_text(download.url, 40):<40}"
         )
 
 
@@ -377,10 +387,10 @@ def _print_failed_downloads(downloads):
     print(f"{'ID':<8} {'RETRIES':<8} {'EXTRACTOR':<12} {'URL':<40}")
     print("-" * 80)
     for download in downloads:
-        extractor = _format_display_text(download['extractor'] or 'N/A', 12)
+        extractor = _format_display_text(download.extractor or 'N/A', 12)
         print(
-            f"{download['id']:<8} {download['retries']:<8} "
-            f"{extractor:<12} {_format_display_text(download['url'], 40):<40}"
+            f"{download.id:<8} {download.retries:<8} "
+            f"{extractor:<12} {_format_display_text(download.url, 40):<40}"
         )
 
 
@@ -389,17 +399,14 @@ def _print_downloaded_files(downloads):
     print(f"{'ID':<8} {'EXTRACTOR':<12} {'EXISTS':<7} {'FILENAME':<40}")
     print("-" * 80)
     for download in downloads:
-        filename = download['final_filename'] or 'N/A'
-        filename = _format_display_text(sanitize_filename(filename), 40)
-        exists = (
-            'YES'
-            if download['final_filename']
-            and os.path.exists(download['final_filename'])
-            else 'NO'
+        filename = (
+            _format_display_text(_sanitize_filename(download.filename), 40)
+            if download.filename else 'N/A'
         )
-        extractor = _format_display_text(download['extractor'] or 'N/A', 12)
+        exists = 'YES' if download.filename and download.filename.exists() else 'NO'
+        extractor = _format_display_text(download.extractor or 'N/A', 12)
         print(
-            f"{download['id']:<8} {extractor:<12} "
+            f"{download.id:<8} {extractor:<12} "
             f"{exists:<7} {filename:<40}"
         )
 
@@ -423,17 +430,17 @@ def _print_downloads_table(downloads, status):
 
 def _show_status(store):
     """Print Download and storage totals."""
-    status_counts = store.get_queue_status()
+    status_counts = store.status_counts()
     print("\nYT-DL-MANAGER QUEUE STATUS")
     print("=" * 40)
     print(f"Total downloads:    {sum(status_counts.values()):>8}")
-    print(f"Pending:           {status_counts.get('pending', 0):>8}")
-    print(f"Downloading:       {status_counts.get('downloading', 0):>8}")
-    print(f"Completed:         {status_counts.get('downloaded', 0):>8}")
-    print(f"Failed:            {status_counts.get('failed', 0):>8}")
-    if status_counts.get('downloaded', 0) > 0:
-        downloaded = store.get_downloads_by_status(
-            DownloadStatus.DOWNLOADED.value
+    print(f"Pending:           {status_counts[DownloadStatus.PENDING]:>8}")
+    print(f"Downloading:       {status_counts[DownloadStatus.DOWNLOADING]:>8}")
+    print(f"Completed:         {status_counts[DownloadStatus.DOWNLOADED]:>8}")
+    print(f"Failed:            {status_counts[DownloadStatus.FAILED]:>8}")
+    if status_counts[DownloadStatus.DOWNLOADED] > 0:
+        downloaded = store.list_downloads(
+            DownloadQuery(DownloadStatus.DOWNLOADED)
         )
         storage = _storage_usage(downloaded)
         print("\nSTORAGE USAGE")
@@ -453,28 +460,35 @@ def handle_list_command(args):
     store = DownloadStore()
 
     # Map sort options
-    sort_mapping = {"date": "timestamp_requested",
-                    "retries": "retries", "url": "url"}
+    sort_mapping = {
+        "date": DownloadSort.REQUESTED,
+        "retries": DownloadSort.RETRIES,
+        "url": DownloadSort.URL,
+    }
 
     if args.list_type == "pending":
-        sort_by = sort_mapping.get(args.sort_by, "timestamp_requested")
+        sort = sort_mapping.get(args.sort_by, DownloadSort.REQUESTED)
         downloads = _list_downloads(
             store,
-            status="pending", limit=args.limit, sort_by=sort_by
+            status=DownloadStatus.PENDING,
+            limit=args.limit,
+            sort=sort,
         )
         _print_downloads_table(downloads, "pending")
 
     elif args.list_type == "failed":
         downloads = _list_downloads(
             store,
-            status="failed", limit=args.limit, retry_count=args.retry_count
+            status=DownloadStatus.FAILED,
+            limit=args.limit,
+            retry_count=args.retry_count,
         )
         _print_downloads_table(downloads, "failed")
 
     elif args.list_type == "downloaded":
         downloads = _list_downloads(
             store,
-            status="downloaded",
+            status=DownloadStatus.DOWNLOADED,
             limit=args.limit,
             extractor=args.extractor,
             missing_files=args.missing_files,
@@ -502,8 +516,8 @@ def _confirm_removal(prompt_message):
 
 def _remove_failed(store, older_than_days=None, dry_run=False):
     """Remove failed Downloads and report the result."""
-    count = store.remove_downloads_by_status(
-        DownloadStatus.FAILED.value,
+    count = store.remove_by_status(
+        DownloadStatus.FAILED,
         older_than_days=older_than_days,
         dry_run=dry_run,
     )
@@ -541,7 +555,7 @@ def _handle_remove_by_ids(store, numeric_ids, dry_run):
         if not _confirm_removal(prompt):
             print("Operation cancelled.")
             return
-    count = store.remove_downloads_by_ids(numeric_ids, dry_run=dry_run)
+    count = store.remove(numeric_ids, dry_run=dry_run)
     action = "Would remove" if dry_run else "Removed"
     print(f"{action} {count} downloads by ID.")
 
@@ -549,11 +563,11 @@ def _handle_remove_by_ids(store, numeric_ids, dry_run):
 def _handle_remove_by_pattern(store, pattern, dry_run):
     """Handle removal of items by URL pattern."""
     if not dry_run:
-        matching = store.find_downloads_by_url_pattern(pattern)
+        matching = store.find_by_url(pattern)
         if matching:
             print(f"Found {len(matching)} downloads matching '{pattern}':")
             for item in matching[:5]:  # Show first 5
-                print(f"  ID {item['id']}: {item['url'][:60]}...")
+                print(f"  ID {item.id}: {item.url[:60]}...")
             if len(matching) > 5:
                 print(f"  ... and {len(matching) - 5} more")
 
@@ -562,7 +576,7 @@ def _handle_remove_by_pattern(store, pattern, dry_run):
                 print("Skipping URL pattern:", pattern)
                 return
 
-    count = store.remove_downloads_by_url_pattern(pattern, dry_run=dry_run)
+    count = store.remove_by_url(pattern, dry_run=dry_run)
     action = "Would remove" if dry_run else "Removed"
     print(f"{action} {count} downloads matching URL pattern '{pattern}'.")
 
@@ -593,8 +607,8 @@ def handle_retry_command(args):
     store = DownloadStore()
 
     if args.failed:
-        failed = store.get_downloads_by_status(DownloadStatus.FAILED.value)
-        download_ids = [download['id'] for download in failed]
+        failed = store.list_downloads(DownloadQuery(DownloadStatus.FAILED))
+        download_ids = [download.id for download in failed]
     elif args.targets:
         # Parse targets as IDs or URL patterns
         numeric_ids, url_patterns = _parse_targets(args.targets)
@@ -603,8 +617,8 @@ def handle_retry_command(args):
 
         # Find IDs from URL patterns
         for pattern in url_patterns:
-            matching = store.find_downloads_by_url_pattern(pattern)
-            pattern_ids = [item["id"] for item in matching]
+            matching = store.find_by_url(pattern)
+            pattern_ids = [item.id for item in matching]
             all_ids.extend(pattern_ids)
             print(
                 f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
@@ -615,7 +629,7 @@ def handle_retry_command(args):
         sys.exit(1)
 
     if download_ids:
-        count = store.reset_downloads_to_pending(
+        count = store.reset(
             download_ids,
             reset_retries=True,
         )
@@ -627,7 +641,9 @@ def handle_retry_command(args):
 def handle_verify_command(args):
     """Handle verify command."""
     store = DownloadStore()
-    downloaded = store.get_downloads_by_status(DownloadStatus.DOWNLOADED.value)
+    downloaded = store.list_downloads(
+        DownloadQuery(DownloadStatus.DOWNLOADED)
+    )
     missing_files = _missing_downloads(store)
 
     print("\nFILE VERIFICATION RESULTS")
@@ -639,14 +655,14 @@ def handle_verify_command(args):
     if missing_files:
         print("\nMISSING FILES:")
         for download in missing_files:
-            print(f"  ID {download['id']}: {download['final_filename']}")
+            print(f"  ID {download.id}: {download.filename}")
 
-    missing_ids = [download['id'] for download in missing_files]
+    missing_ids = [download.id for download in missing_files]
     if missing_ids and args.fix:
-        store.reset_downloads_to_pending(missing_ids, reset_retries=True)
+        store.reset(missing_ids, reset_retries=True)
         print(f"\nMarked {len(missing_ids)} missing files for redownload.")
     if missing_ids and args.delete_records:
-        store.remove_downloads_by_ids(missing_ids)
+        store.remove(missing_ids)
         print(f"\nDeleted {len(missing_ids)} database records for missing files.")
 
 
@@ -661,14 +677,14 @@ def handle_redownload_command(args):
 
     # Find IDs from URL patterns
     for pattern in url_patterns:
-        matching = store.find_downloads_by_url_pattern(pattern)
-        pattern_ids = [item["id"] for item in matching]
+        matching = store.find_by_url(pattern)
+        pattern_ids = [item.id for item in matching]
         all_ids.extend(pattern_ids)
         print(
             f"Found {len(pattern_ids)} downloads matching pattern '{pattern}'")
 
     if all_ids:
-        count = store.reset_downloads_to_pending(all_ids, reset_retries=True)
+        count = store.reset(all_ids, reset_retries=True)
         print(f"Marked {count} downloads for redownload.")
     else:
         print("No downloads found to redownload.")

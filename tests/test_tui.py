@@ -4,9 +4,16 @@ import asyncio
 import os
 import tempfile
 import unittest
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 from yt_dl_manager.download import DownloadOutcome, DownloadOutcomeKind
+from yt_dl_manager.download_store import (
+    Download,
+    DownloadQuery,
+    DownloadSort,
+    DownloadStatus,
+)
 from yt_dl_manager.tui import TUIApp, URLInputModal
 
 
@@ -48,7 +55,7 @@ class TestTUIApp(unittest.TestCase):
     def test_refresh_pending_downloads_empty(self, mock_queue_class):
         """Test refreshing pending downloads when queue is empty."""
         mock_queue = Mock()
-        mock_queue.get_downloads_by_status.return_value = []
+        mock_queue.list_downloads.return_value = []
         mock_queue_class.return_value = mock_queue
 
         app = TUIApp()
@@ -68,24 +75,25 @@ class TestTUIApp(unittest.TestCase):
             loop.close()
 
         mock_table.clear.assert_called_once()
-        mock_queue.get_downloads_by_status.assert_called_once_with(
-            'pending',
-            sort_by='timestamp_requested',
-            order='DESC'
+        mock_queue.list_downloads.assert_called_once_with(
+            DownloadQuery(DownloadStatus.PENDING),
         )
 
     @patch('yt_dl_manager.tui.DownloadStore')
     def test_refresh_pending_downloads_with_data(self, mock_queue_class):
         """Test refreshing pending downloads with data."""
         mock_queue = Mock()
-        test_download = {
-            'id': 1,
-            'url': 'https://example.com/video',
-            'status': 'pending',
-            'timestamp_requested': '2023-01-01T12:00:00',
-            'retries': 0
-        }
-        mock_queue.get_downloads_by_status.return_value = [test_download]
+        test_download = Download(
+            id=1,
+            url='https://example.com/video',
+            status=DownloadStatus.PENDING,
+            requested_at=datetime.fromisoformat('2023-01-01T12:00:00'),
+            completed_at=None,
+            filename=None,
+            extractor=None,
+            retries=0,
+        )
+        mock_queue.list_downloads.return_value = [test_download]
         mock_queue_class.return_value = mock_queue
 
         app = TUIApp()
@@ -117,7 +125,7 @@ class TestTUIApp(unittest.TestCase):
     def test_refresh_completed_downloads_empty(self, mock_queue_class):
         """Test refreshing completed downloads when empty."""
         mock_queue = Mock()
-        mock_queue.get_downloads_by_status.return_value = []
+        mock_queue.list_downloads.return_value = []
         mock_queue_class.return_value = mock_queue
 
         app = TUIApp()
@@ -135,11 +143,12 @@ class TestTUIApp(unittest.TestCase):
             loop.close()
 
         mock_table.clear.assert_called_once()
-        mock_queue.get_downloads_by_status.assert_called_once_with(
-            'downloaded',
-            limit=10,
-            sort_by='timestamp_downloaded',
-            order='DESC'
+        mock_queue.list_downloads.assert_called_once_with(
+            DownloadQuery(
+                status=DownloadStatus.DOWNLOADED,
+                limit=10,
+                sort=DownloadSort.COMPLETED,
+            ),
         )
 
     def test_status_update_message(self):
