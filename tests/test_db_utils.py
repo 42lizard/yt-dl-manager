@@ -64,30 +64,6 @@ class TestDatabaseUtils(unittest.TestCase):
         self.assertEqual(result[0][1], "https://test1.com")  # URL
         self.assertEqual(result[0][2], 0)  # retries
 
-    def test_mark_downloading(self):
-        """Test marking a download as downloading."""
-        # Insert test data
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO downloads (url, status, timestamp_requested) VALUES (?, ?, ?)",
-            ("https://test.com", "pending", datetime.now(timezone.utc).isoformat())
-        )
-        conn.commit()
-        row_id = cur.lastrowid
-        conn.close()
-
-        # Mark as downloading
-        self.db_utils.mark_downloading(row_id)
-
-        # Verify status changed
-        conn = sqlite3.connect(self.test_db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM downloads WHERE id = ?", (row_id,))
-        status = cur.fetchone()[0]
-        conn.close()
-        self.assertEqual(status, "downloading")
-
     def test_mark_downloaded(self):
         """Test marking a download as downloaded with metadata."""
         # Insert test data
@@ -273,7 +249,7 @@ class TestDatabaseUtils(unittest.TestCase):
         self.db_utils.add_url("https://example.com/video4")
 
         # Set different statuses
-        self.db_utils.mark_downloading(1)
+        self.db_utils.claim_pending_for_download(1)
         self.db_utils.mark_downloaded(2, "video2.mp4", "youtube")
         self.db_utils.mark_failed(3)
         # Leave video4 as pending

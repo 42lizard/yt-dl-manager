@@ -14,10 +14,12 @@ class Queue:
     """
 
     def claim_pending_for_download(self, download_id):
-        """Atomically claim a pending download for processing.
-        Returns True if claim succeeded, False otherwise.
-        """
+        """Atomically claim and load a pending Download."""
         return self.db.claim_pending_for_download(download_id)
+
+    def record_failed_attempt(self, download_id, max_attempts):
+        """Atomically schedule a retry or mark a Download failed."""
+        return self.db.record_failed_attempt(download_id, max_attempts)
 
     def __init__(self, db_path=None):
         """Initialize the Queue with database path.
@@ -138,29 +140,6 @@ class Queue:
         except Exception as e:
             self.logger.error(
                 "Failed to get downloads by status %s: %s", status, str(e))
-            raise
-
-    def start_download(self, download_id):
-        """Mark a download as 'downloading' in the queue.
-
-        Args:
-            download_id (int): The database row ID of the download.
-
-        Raises:
-            ValueError: If download_id is not a positive integer.
-            Exception: If database operation fails.
-        """
-        if not isinstance(download_id, int) or download_id <= 0:
-            raise ValueError("download_id must be a positive integer")
-
-        self.logger.info("Starting download with ID: %d", download_id)
-        try:
-            self.db.mark_downloading(download_id)
-            self.logger.info(
-                "Successfully marked download %d as downloading", download_id)
-        except Exception as e:
-            self.logger.error(
-                "Failed to start download %d: %s", download_id, str(e))
             raise
 
     def complete_download(self, download_id, filename, extractor):

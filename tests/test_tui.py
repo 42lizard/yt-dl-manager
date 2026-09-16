@@ -4,8 +4,9 @@ import asyncio
 import os
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+from yt_dl_manager.download import DownloadOutcome, DownloadOutcomeKind
 from yt_dl_manager.tui import TUIApp, URLInputModal
 
 
@@ -150,6 +151,42 @@ class TestTUIApp(unittest.TestCase):
         """Test RefreshData message creation."""
         message = TUIApp.RefreshData()
         self.assertIsNotNone(message)
+
+    @patch('yt_dl_manager.tui.Queue')
+    def test_download_outcome_is_rendered(self, mock_queue_class):
+        """The TUI adapter renders lifecycle outcomes."""
+        mock_queue_class.return_value = Mock()
+        app = TUIApp()
+        outcome = DownloadOutcome(
+            4,
+            DownloadOutcomeKind.COMPLETED,
+            filename='/tmp/video.mp4',
+        )
+        app.downloads.execute = Mock()
+        app.show_status = AsyncMock()
+        app.refresh_data = AsyncMock()
+        mock_loop = Mock()
+        mock_loop.run_in_executor = AsyncMock(return_value=outcome)
+
+        async def run_download():
+            with patch(
+                'yt_dl_manager.tui.asyncio.get_event_loop',
+                return_value=mock_loop,
+            ):
+                start_download = getattr(app, '_start_download_async')
+                await start_download(4)
+
+        asyncio.run(run_download())
+
+        mock_loop.run_in_executor.assert_awaited_once_with(
+            None,
+            app.downloads.execute,
+            4,
+        )
+        app.show_status.assert_awaited_once_with(
+            "✓ Download completed for ID 4"
+        )
+        app.refresh_data.assert_awaited_once()
 
 
 class TestURLInputModal(unittest.TestCase):

@@ -4,7 +4,7 @@
 import logging
 from .config import get_config_path
 from .queue import Queue
-from .download_utils import download_media
+from .download import DownloadLifecycle, DownloadOutcomeKind
 
 logger = logging.getLogger(__name__)
 
@@ -34,5 +34,21 @@ def main(args):
     queue_adder = AddToQueue()
     success, row_id = queue_adder.add_url(args.url)
     if getattr(args, 'download', False) and success and row_id:
-        queue = queue_adder.queue
-        download_media(queue, row_id, args.url, 0, max_retries=3)
+        outcome = DownloadLifecycle(queue_adder.queue).execute(row_id)
+        if outcome.kind is DownloadOutcomeKind.COMPLETED:
+            print(f"Downloaded: {outcome.filename}")
+        elif outcome.kind is DownloadOutcomeKind.RETRY_SCHEDULED:
+            print(
+                f"Download {row_id} failed; retry scheduled "
+                f"(attempt {outcome.attempts}): {outcome.error}"
+            )
+        elif outcome.kind is DownloadOutcomeKind.FAILED:
+            print(
+                f"Download {row_id} failed after {outcome.attempts} attempts: "
+                f"{outcome.error}"
+            )
+        else:
+            print(
+                f"Download {row_id} is not available "
+                f"(status: {outcome.status or 'missing'})."
+            )

@@ -18,17 +18,18 @@ yt-dl-manager/
 │   ├── maintenance.py     # Database maintenance commands
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
-│   ├── download_utils.py  # Shared download logic with yt-dlp integration
+│   ├── download.py        # Download lifecycle and yt-dlp integration
 │   ├── logging_config.py  # Centralized logging configuration
 │   └── tui.py             # Terminal User Interface with Textual
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (13 test cases)
+│   ├── test_daemon.py     # Daemon adapter tests (3 test cases)
+│   ├── test_download.py   # Download lifecycle tests (5 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (7 test cases)
-│   ├── test_queue.py      # Queue class tests (22 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (28 test cases)
+│   ├── test_queue.py      # Queue class tests (20 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (27 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
-│   ├── test_tui.py         # TUI tests (11 test cases)
+│   ├── test_tui.py         # TUI tests (12 test cases)
 │   └── test_utils.py      # Test helpers
 ├── LICENSE                # ISC license
 └── README.md              # Comprehensive documentation
@@ -66,7 +67,7 @@ Table: `downloads`
 - `extractor` (TEXT, nullable)
 - `retries` (INTEGER DEFAULT 0)
 
-✅ **111 comprehensive unit tests** (100% pass rate)
+✅ **104 comprehensive unit tests** (100% pass rate)
 ✅ **10/10 pylint score** with strict code quality standards
 ✅ **GitHub Actions CI/CD** with Python 3.11-3.14 matrix testing
 ✅ **Modern CLI interface** with subcommands (init, daemon, add, tui)
@@ -90,7 +91,7 @@ Table: `downloads`
 - [x] Retry logic for failed downloads (up to 3 times, tracked in database)
 - [x] Add-to-queue functionality with duplicate handling and file path display
 - [x] Metadata embedding in final file
-- [x] **Comprehensive unit test suite (111 tests)**
+- [x] **Comprehensive unit test suite (104 tests)**
 - [x] 10/10 pylint code quality compliance
 - [x] GitHub Actions CI/CD pipeline
 - [x] Professional project structure with separate tests/ directory
@@ -131,14 +132,15 @@ pylint yt_dl_manager
 ```
 
 ### Test Coverage
-- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (3 cases)**: Polling, lifecycle delegation, and shutdown behavior
+- **Download Tests (5 cases)**: Claiming, completion, retries, concurrency, and unexpected errors
 - **CLI Tests (7 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
-- **Queue Tests (22 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (28 cases)**: Extended database operations, maintenance functions, data integrity
+- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (27 cases)**: Extended database operations, maintenance functions, data integrity
 - **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
-- **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
+- **TUI Tests (12 cases)**: Terminal User Interface functionality, lifecycle outcomes, and modal dialogs
+- **Quality Metrics**: 100% test pass rate (104/104), 10/10 pylint score, CI/CD pipeline
 
 ### CI/CD Pipeline
 - Automated testing across Python 3.11, 3.12, 3.13, 3.14
@@ -169,7 +171,7 @@ pylint yt_dl_manager
 - Protected against malicious user input in all database interactions
 
 **Enhanced Testing & Quality**: 
-- Expanded test suite to 111 comprehensive tests covering all functionality including maintenance commands
+- Consolidated the suite to 104 tests by replacing shallow daemon lifecycle tests with interface tests
 - Updated test mocking strategy for new configuration system compatibility
 - Maintained high code quality with 10/10 pylint score
 - All tests passing with robust CI/CD pipeline

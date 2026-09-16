@@ -63,21 +63,53 @@ class DatabaseUtils:
 
     def claim_pending_for_download(self, row_id):
         """Atomically claim a pending download for processing.
-        Sets status to 'downloading' only if current status is 'pending'.
-        Returns True if claim succeeded, False otherwise.
+        Return whether it was claimed and its current record when present.
         """
         conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(
             "UPDATE downloads SET status = ? "
-            "WHERE id = ? AND status = ?",
+            "WHERE id = ? AND status = ? "
+            "RETURNING id, url, retries, status",
             (DownloadStatus.DOWNLOADING.value,
              row_id,
              DownloadStatus.PENDING.value))
-        updated = cur.rowcount
+        row = cur.fetchone()
+        claimed = row is not None
+        if row is None:
+            cur.execute(
+                "SELECT id, url, retries, status FROM downloads WHERE id = ?",
+                (row_id,),
+            )
+            row = cur.fetchone()
         conn.commit()
         conn.close()
-        return updated == 1
+        return claimed, dict(row) if row else None
+
+    def record_failed_attempt(self, row_id, max_attempts):
+        """Atomically increment attempts and schedule retry or mark failed."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE downloads "
+            "SET retries = retries + 1, status = CASE "
+            "WHEN retries + 1 >= ? THEN ? ELSE ? END "
+            "WHERE id = ? AND status = ? "
+            "RETURNING retries, status",
+            (
+                max_attempts,
+                DownloadStatus.FAILED.value,
+                DownloadStatus.PENDING.value,
+                row_id,
+                DownloadStatus.DOWNLOADING.value,
+            ),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        conn.close()
+        return dict(row) if row else None
 
     def __init__(self, db_path=None):
         """Initialize DatabaseUtils with database path.
@@ -115,20 +147,6 @@ class DatabaseUtils:
         rows = cur.fetchall()
         conn.close()
         return rows
-
-    def mark_downloading(self, row_id):
-        """Mark a download as 'downloading' in the database.
-        Args:
-            row_id (int): The database row ID of the download.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE downloads SET status = ? WHERE id = ?",
-            (DownloadStatus.DOWNLOADING.value, row_id)
-        )
-        conn.commit()
-        conn.close()
 
     def mark_downloaded(self, row_id, filename, extractor):
         """Mark a download as 'downloaded' and store metadata in the database.

@@ -19,7 +19,7 @@ A simple Python daemon for managing media downloads using yt-dlp, with SQLite3 q
 - 🛠️ **Auto-initialization** - Database schema created automatically on first use
 - 🏗️ **Centralized queue management** - Clean architecture with dedicated Queue class
 - 🗃️ **Database maintenance** - Comprehensive commands for queue and file management
-- 🧪 **Comprehensive testing** - 111 unit tests with 100% pass rate
+- 🧪 **Comprehensive testing** - 104 unit tests with 100% pass rate
 - 📊 **Code quality** - 10/10 pylint score across all modules
 - 🚀 **CI/CD ready** - GitHub Actions workflow included
 - ⚙️ **Command-line interface** - Modern subcommands for all operations
@@ -359,7 +359,7 @@ yt-dl-manager/
 │   ├── maintenance.py     # Database maintenance commands
 │   ├── config.py          # Configuration management with platformdirs
 │   ├── create_config.py   # Default configuration creation utility
-│   ├── download_utils.py  # Shared download logic with yt-dlp integration
+│   ├── download.py        # Download lifecycle and yt-dlp integration
 │   ├── logging_config.py  # Centralized logging configuration
 │   ├── i18n.py            # Internationalization utilities with gettext
 │   ├── tui.py             # Terminal User Interface with Textual
@@ -369,13 +369,14 @@ yt-dl-manager/
 │               ├── yt-dl-manager.po  # German translation source
 │               └── yt-dl-manager.mo  # Compiled German translations
 ├── tests/                 # Unit test suite
-│   ├── test_daemon.py     # Daemon tests (13 test cases)
+│   ├── test_daemon.py     # Daemon adapter tests (3 test cases)
+│   ├── test_download.py   # Download lifecycle tests (5 test cases)
 │   ├── test_add_to_queue.py # CLI tool tests (7 test cases)
-│   ├── test_queue.py      # Queue class tests (22 test cases)
-│   ├── test_db_utils.py   # Database utilities tests (28 test cases)
+│   ├── test_queue.py      # Queue class tests (20 test cases)
+│   ├── test_db_utils.py   # Database utilities tests (27 test cases)
 │   ├── test_maintenance.py # Maintenance commands tests (19 test cases)
 │   ├── test_create_config.py # Configuration tests (3 test cases)
-│   ├── test_tui.py         # TUI tests (11 test cases)
+│   ├── test_tui.py         # TUI tests (12 test cases)
 │   ├── test_i18n.py       # Internationalization tests (8 test cases)
 │   └── test_utils.py      # Test helpers
 ├── LICENSE                # ISC license
@@ -384,15 +385,16 @@ yt-dl-manager/
 
 ### Test Coverage
 
-- **Daemon Tests (13 cases)**: Database operations, download logic, retry handling, daemon loop, error scenarios
+- **Daemon Tests (3 cases)**: Polling, lifecycle delegation, and shutdown behavior
+- **Download Tests (5 cases)**: Claiming, completion, retries, concurrency, and unexpected errors
 - **CLI Tests (7 cases)**: URL addition, duplicate detection, queue management, edge cases, immediate downloads
-- **Queue Tests (22 cases)**: Centralized queue operations, status management, queue statistics
-- **Database Tests (28 cases)**: Extended database operations, maintenance functions, data integrity
+- **Queue Tests (20 cases)**: Centralized queue operations, status management, queue statistics
+- **Database Tests (27 cases)**: Extended database operations, maintenance functions, data integrity
 - **Maintenance Tests (19 cases)**: All maintenance commands, file verification, data export/import
 - **Configuration Tests (3 cases)**: Config file creation, force overwrite, error handling
-- **TUI Tests (11 cases)**: Terminal User Interface functionality, modal dialogs, keyboard shortcuts
+- **TUI Tests (12 cases)**: Terminal User Interface functionality, lifecycle outcomes, and modal dialogs
 - **I18n Tests (8 cases)**: Translation functionality, locale detection, language switching
-- **Quality Metrics**: 100% test pass rate (111/111), 10/10 pylint score, CI/CD pipeline
+- **Quality Metrics**: 100% test pass rate (104/104), 10/10 pylint score, CI/CD pipeline
 
 ## Database Schema
 Table: `downloads`
@@ -410,11 +412,11 @@ Table: `downloads`
 
 ### Custom yt-dlp Options
 
-Edit `yt_dl_manager/daemon.py` to customize download options:
+Edit `yt_dl_manager/download.py` to customize download options:
 
 ```python
-# In the download_media method, modify the ydl_opts dictionary:
-ydl_opts = {
+# In DownloadLifecycle.execute, modify the options dictionary:
+options = {
     'format': 'bestvideo+bestaudio/best',
     'outtmpl': f'{target_folder}/%(extractor)s/%(title)s.%(ext)s',
     'writemetadata': True,

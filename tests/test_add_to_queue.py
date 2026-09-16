@@ -41,15 +41,15 @@ class TestAddToQueue(unittest.TestCase):
             mock_config_path = MagicMock()
             mock_config_path.exists.return_value = True
 
-            # Patch the config object used by download_utils and the config path check
-            with patch('yt_dl_manager.download_utils.config', test_config):
+            # Patch the config object used by the lifecycle and config path check
+            with patch('yt_dl_manager.download.config', test_config):
                 with patch('yt_dl_manager.add_to_queue.get_config_path', return_value=mock_config_path):
                     with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
                         # Create a real queue instance for the test
                         test_queue = Queue(db_path=test_db_path)
                         mock_queue_class.return_value = test_queue
 
-                        with patch('yt_dl_manager.download_utils.yt_dlp.YoutubeDL') as mock_ydl:
+                        with patch('yt_dl_manager.download.yt_dlp.YoutubeDL') as mock_ydl:
                             # Set up YoutubeDL mock
                             mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
                                 'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'

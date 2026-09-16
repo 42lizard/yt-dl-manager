@@ -104,20 +104,6 @@ class TestQueue(unittest.TestCase):
         self.assertEqual(pending[0][1], test_url)  # URL is second element
         self.assertEqual(pending[0][2], 0)  # retries is third element
 
-    def test_start_download_invalid_id(self):
-        """Test starting download with invalid ID raises ValueError."""
-        with self.assertRaises(ValueError) as context:
-            self.queue.start_download(0)
-        self.assertIn("must be a positive integer", str(context.exception))
-
-        with self.assertRaises(ValueError) as context:
-            self.queue.start_download(-1)
-        self.assertIn("must be a positive integer", str(context.exception))
-
-        with self.assertRaises(ValueError) as context:
-            self.queue.start_download("invalid")
-        self.assertIn("must be a positive integer", str(context.exception))
-
     def test_complete_download_invalid_parameters(self):
         """Test completing download with invalid parameters raises ValueError."""
         with self.assertRaises(ValueError) as context:
@@ -143,18 +129,6 @@ class TestQueue(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.queue.increment_retries("invalid")
         self.assertIn("must be a positive integer", str(context.exception))
-
-    def test_start_download(self):
-        """Test marking a download as started."""
-        test_url = "https://www.example.com/video"
-        self.queue.add_url(test_url)
-        pending = self.queue.get_pending()
-        download_id = pending[0][0]
-
-        self.queue.start_download(download_id)
-        # After marking as downloading, it should not appear in pending
-        pending_after = self.queue.get_pending()
-        self.assertEqual(len(pending_after), 0)
 
     def test_complete_download(self):
         """Test marking a download as completed."""
@@ -228,7 +202,7 @@ class TestQueue(unittest.TestCase):
 
         pending = self.queue.get_pending()
         # Mark one as downloading
-        self.queue.start_download(pending[0][0])
+        self.queue.claim_pending_for_download(pending[0][0])
         # Mark one as completed
         self.queue.complete_download(pending[1][0], "test.mp4", "youtube")
         # Mark one as failed

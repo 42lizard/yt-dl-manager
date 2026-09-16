@@ -4,12 +4,11 @@ import logging
 import time
 from .queue import Queue
 from .config import get_config_path
-from .download_utils import download_media
+from .download import DownloadLifecycle, DownloadOutcomeKind
 
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = 10  # seconds
-MAX_RETRIES = 3
 
 
 class YTDLManagerDaemon:
@@ -19,31 +18,28 @@ class YTDLManagerDaemon:
         """Initialize the daemon with the database path."""
         self.running = True
         self.queue = Queue()
+        self.downloads = DownloadLifecycle(self.queue)
 
-    def poll_pending(self):
-        """Fetch all pending downloads from the database."""
-        return self.queue.get_pending()
-
-    def mark_downloading(self, row_id):
-        """Mark a download as 'downloading' in the database."""
-        self.queue.start_download(row_id)
-
-    def mark_downloaded(self, row_id, filename, extractor):
-        """Mark a download as 'downloaded' and store metadata in the database."""
-        self.queue.complete_download(row_id, filename, extractor)
-
-    def mark_failed(self, row_id):
-        """Mark a download as 'failed' in the database."""
-        self.queue.fail_download(row_id)
-
-    def increment_retries(self, row_id):
-        """Increment the retry counter for a download in the database."""
-        self.queue.increment_retries(row_id)
-
-    def download_media(self, row_id, url, retries):
-        """Download media using shared utility."""
-        download_media(self.queue, row_id, url,
-                       retries, max_retries=MAX_RETRIES)
+    @staticmethod
+    def _print_outcome(outcome):
+        """Render a Download outcome for daemon users."""
+        if outcome.kind is DownloadOutcomeKind.COMPLETED:
+            print(f"Downloaded: {outcome.filename}")
+        elif outcome.kind is DownloadOutcomeKind.RETRY_SCHEDULED:
+            print(
+                f"Download {outcome.download_id} failed; retry scheduled "
+                f"(attempt {outcome.attempts}): {outcome.error}"
+            )
+        elif outcome.kind is DownloadOutcomeKind.FAILED:
+            print(
+                f"Download {outcome.download_id} failed after "
+                f"{outcome.attempts} attempts: {outcome.error}"
+            )
+        else:
+            print(
+                f"Download {outcome.download_id} is not available "
+                f"(status: {outcome.status or 'missing'})."
+            )
 
     def run(self):
         """Main loop for polling and processing downloads."""
@@ -52,13 +48,13 @@ class YTDLManagerDaemon:
         print(startup_msg)  # Print for daemon visibility
         try:
             while self.running:
-                pending = self.poll_pending()
+                pending = self.queue.get_pending()
                 if pending:
                     pending_msg = f'Found {len(pending)} pending downloads.'
                     logger.info(pending_msg)
                     print(pending_msg)  # Print for daemon visibility
-                    for row_id, url, retries in pending:
-                        self.download_media(row_id, url, retries)
+                    for row_id, _, _ in pending:
+                        self._print_outcome(self.downloads.execute(row_id))
                 else:
                     logger.debug('No pending downloads.')
                 time.sleep(POLL_INTERVAL)

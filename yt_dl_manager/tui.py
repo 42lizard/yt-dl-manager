@@ -12,7 +12,7 @@ from textual.binding import Binding
 # from textual.widgets._data_table import RowKey
 
 from .queue import Queue
-from .download_utils import download_media
+from .download import DownloadLifecycle, DownloadOutcomeKind
 from .i18n import _ as gettext
 
 
@@ -159,6 +159,7 @@ class TUIApp(App):
         super().__init__()
         self.recent_limit = recent_limit
         self.queue = Queue()
+        self.downloads = DownloadLifecycle(self.queue)
         self.logger = logging.getLogger(__name__)
 
         # UI state management
@@ -502,27 +503,14 @@ class TUIApp(App):
 
         if selection_id is not None:
             try:
-                # Get the full download info from database
-                pending_downloads = self.queue.get_pending()
-                self.logger.debug("Pending downloads: %s", pending_downloads)
-                download_info = None
-                for row_id, url, retries in pending_downloads:
-                    if row_id == selection_id:
-                        download_info = (row_id, url, retries)
-                        break
-
-                if download_info is None:
-                    await self.show_status(gettext("✗ Download {} not found in pending queue").format(selection_id))
-                    return
-
-                row_id, url, retries = download_info
-
-                # Start the download in a background task
                 self.logger.debug(
-                    "Starting download for row_id=%s, url=%s, retries=%s", row_id, url, retries)
-                asyncio.create_task(
-                    self._start_download_async(row_id, url, retries))
-                await self.show_status(gettext("🚀 Starting download for ID {}...").format(row_id))
+                    "Starting download for ID %s", selection_id)
+                asyncio.create_task(self._start_download_async(selection_id))
+                await self.show_status(
+                    gettext("🚀 Starting download for ID {}...").format(
+                        selection_id
+                    )
+                )
 
             except (ValueError, RuntimeError, KeyError, TypeError) as e:
                 self.logger.error("Error starting download: %s", e)
@@ -530,26 +518,34 @@ class TUIApp(App):
         else:
             await self.show_status(gettext("⚠ No item selected"))
 
-    async def _start_download_async(self, download_id: int, url: str, retries: int) -> None:
+    async def _start_download_async(self, download_id: int) -> None:
         """Start download asynchronously in the background."""
         try:
-            # Run the download in a thread to avoid blocking the UI
-            def run_download():
-                try:
-                    download_media(self.queue, download_id, url, retries)
-                    return True, None
-                except (ValueError, RuntimeError) as exc:
-                    return False, str(exc)
-                # Do not catch Exception here to avoid W0718
-
-            # Use run_in_executor to run the blocking download in a thread
             loop = asyncio.get_event_loop()
-            success, error = await loop.run_in_executor(None, run_download)
+            outcome = await loop.run_in_executor(
+                None,
+                self.downloads.execute,
+                download_id,
+            )
 
-            if success:
-                await self.show_status(gettext("✓ Download completed for ID {}").format(download_id))
+            if outcome.kind is DownloadOutcomeKind.COMPLETED:
+                message = gettext("✓ Download completed for ID {}").format(
+                    download_id
+                )
+            elif outcome.kind is DownloadOutcomeKind.RETRY_SCHEDULED:
+                message = gettext(
+                    "⚠ Download failed for ID {}; retry scheduled: {}"
+                ).format(download_id, outcome.error)
+            elif outcome.kind is DownloadOutcomeKind.FAILED:
+                message = gettext("✗ Download failed for ID {}: {}").format(
+                    download_id,
+                    outcome.error,
+                )
             else:
-                await self.show_status(gettext("✗ Download failed for ID {}: {}").format(download_id, error))
+                message = gettext("⚠ Download {} is not available").format(
+                    download_id
+                )
+            await self.show_status(message)
 
             # Refresh data to show updated status
             await self.refresh_data()

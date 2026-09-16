@@ -33,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "yt-dlp",
+    "yt-dlp>=2026.8.19",
     "platformdirs",
     "textual",
 ]

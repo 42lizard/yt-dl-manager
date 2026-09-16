@@ -12,7 +12,7 @@ python -m pytest tests/ -v
 python -m pytest tests/test_daemon.py -v
 
 # Run a single test method
-python -m pytest tests/test_daemon.py::TestYTDLManagerDaemon::test_poll_pending -v
+python -m pytest tests/test_daemon.py::TestYTDLManagerDaemon::test_run_no_pending_downloads -v
 
 # Lint application code (must score 10/10)
 pylint --rcfile=yt_dl_manager/.pylintrc $(git ls-files 'yt_dl_manager/*.py')
@@ -35,7 +35,7 @@ CLI entry point (`__main__.py`) uses argparse subcommands that dispatch to handl
 - `config.py` uses `configparser` + `platformdirs` for OS-specific paths. A module-level `config` singleton is imported throughout.
 - `i18n.py` provides a `_()` gettext function. All user-facing CLI strings must be wrapped in `_()`.
 - `tui.py` uses the Textual library for the terminal UI.
-- `download_utils.py` contains shared yt-dlp integration logic used by both daemon and add commands.
+- `download.py` owns the Download lifecycle: atomic claiming, yt-dlp execution, retry transitions, and structured outcomes for daemon, CLI, and TUI adapters.
 - `logging_config.py` sets up file + stderr handlers. Use `logging.getLogger(__name__)` in each module.
 
 ## Key Conventions
