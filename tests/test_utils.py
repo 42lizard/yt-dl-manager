@@ -1,5 +1,5 @@
 """Test utilities."""
-from yt_dl_manager.db_utils import DatabaseUtils
+from yt_dl_manager.download_store import DownloadStore
 
 
 def create_test_schema(db_path):
@@ -8,5 +8,4 @@ def create_test_schema(db_path):
     Args:
         db_path (str): Path to the test database file.
     """
-    # Use DatabaseUtils to ensure consistent schema creation
-    DatabaseUtils(db_path)
+    DownloadStore(db_path)

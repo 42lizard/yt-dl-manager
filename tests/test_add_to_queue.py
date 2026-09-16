@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 import io
 import sys
 from yt_dl_manager.add_to_queue import AddToQueue
-from yt_dl_manager.queue import Queue
+from yt_dl_manager.download_store import DownloadStore
 from yt_dl_manager import add_to_queue
 from tests.test_utils import create_test_schema
 
@@ -44,9 +44,8 @@ class TestAddToQueue(unittest.TestCase):
             # Patch the config object used by the lifecycle and config path check
             with patch('yt_dl_manager.download.config', test_config):
                 with patch('yt_dl_manager.add_to_queue.get_config_path', return_value=mock_config_path):
-                    with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-                        # Create a real queue instance for the test
-                        test_queue = Queue(db_path=test_db_path)
+                    with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
+                        test_queue = DownloadStore(db_path=test_db_path)
                         mock_queue_class.return_value = test_queue
 
                         with patch('yt_dl_manager.download.yt_dlp.YoutubeDL') as mock_ydl:
@@ -97,10 +96,8 @@ class TestAddToQueue(unittest.TestCase):
         # Create the test database schema
         create_test_schema(self.test_db_path)
 
-        # Initialize the AddToQueue instance with mocked Queue that uses test database
-        with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            # Create a real Queue instance with our test database path
-            test_queue = Queue(db_path=self.test_db_path)
+        with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
+            test_queue = DownloadStore(db_path=self.test_db_path)
             mock_queue_class.return_value = test_queue
             self.queue_manager = AddToQueue()
 
@@ -180,7 +177,7 @@ class TestAddToQueue(unittest.TestCase):
             def now(cls, _=None):
                 return fixed_time
 
-        with patch('yt_dl_manager.db_utils.datetime.datetime', FixedDateTime):
+        with patch('yt_dl_manager.download_store.datetime.datetime', FixedDateTime):
             self.queue_manager.add_url(test_url)
 
         # Verify timestamp in database
@@ -197,10 +194,8 @@ class TestAddToQueue(unittest.TestCase):
 
     def test_database_connection_error(self):
         """Test behavior when database connection fails."""
-        # Create AddToQueue with invalid database path
-        with patch('yt_dl_manager.add_to_queue.Queue') as mock_queue_class:
-            # Create a Queue instance with invalid database path
-            invalid_queue = Queue(db_path="/invalid/path/to/database.db")
+        with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
+            invalid_queue = DownloadStore(db_path="/invalid/path/to/database.db")
             mock_queue_class.return_value = invalid_queue
             test_queue_manager = AddToQueue()
 

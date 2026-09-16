@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS downloads (
 '''
 
 
-class DatabaseUtils:
-    """Centralized database operations for yt-dl-manager."""
+class DownloadStore:
+    """Persist Downloads in SQLite."""
 
     def _build_in_clause_placeholders(self, count):
         """Build a safe IN clause with the specified number of placeholders.
@@ -112,7 +112,7 @@ class DatabaseUtils:
         return dict(row) if row else None
 
     def __init__(self, db_path=None):
-        """Initialize DatabaseUtils with database path.
+        """Initialize the Download store with a database path.
         Args:
             db_path (str, optional): Path to the SQLite database file. Defaults to None.
         """

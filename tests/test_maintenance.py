@@ -25,7 +25,7 @@ class TestMaintenanceCommands(unittest.TestCase):
         ]
 
         for url in self.test_urls:
-            self.maintenance.db.add_url(url)
+            self.maintenance.store.add_url(url)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -46,7 +46,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_list_downloads_missing_files(self):
         """Test listing downloads with missing files."""
         # Mark one as downloaded with non-existent file
-        self.maintenance.db.mark_downloaded(
+        self.maintenance.store.mark_downloaded(
             1, "/nonexistent/file.mp4", "youtube")
 
         downloads = self.maintenance.list_downloads(
@@ -85,7 +85,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_remove_failed_dry_run(self):
         """Test removing failed downloads in dry run mode."""
         # Mark one as failed
-        self.maintenance.db.mark_failed(1)
+        self.maintenance.store.mark_failed(1)
 
         count = self.maintenance.remove_failed(dry_run=True)
         self.assertEqual(count, 1)
@@ -97,7 +97,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_remove_failed_actual(self):
         """Test actually removing failed downloads."""
         # Mark one as failed
-        self.maintenance.db.mark_failed(1)
+        self.maintenance.store.mark_failed(1)
 
         count = self.maintenance.remove_failed(dry_run=False)
         self.assertEqual(count, 1)
@@ -129,7 +129,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_retry_downloads(self):
         """Test retrying downloads."""
         # Mark one as failed
-        self.maintenance.db.mark_failed(1)
+        self.maintenance.store.mark_failed(1)
 
         count = self.maintenance.retry_downloads(download_ids=[1])
         self.assertEqual(count, 1)
@@ -142,8 +142,8 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_retry_failed_only(self):
         """Test retrying all failed downloads."""
         # Mark two as failed
-        self.maintenance.db.mark_failed(1)
-        self.maintenance.db.mark_failed(2)
+        self.maintenance.store.mark_failed(1)
+        self.maintenance.store.mark_failed(2)
 
         count = self.maintenance.retry_downloads(failed_only=True)
         self.assertEqual(count, 2)
@@ -155,7 +155,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_redownload_items(self):
         """Test marking items for redownload."""
         # Mark one as downloaded
-        self.maintenance.db.mark_downloaded(1, "/some/file.mp4", "youtube")
+        self.maintenance.store.mark_downloaded(1, "/some/file.mp4", "youtube")
 
         count = self.maintenance.redownload_items([1])
         self.assertEqual(count, 1)
@@ -169,7 +169,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_verify_files(self, mock_exists):
         """Test file verification."""
         # Mark one as downloaded
-        self.maintenance.db.mark_downloaded(1, "/some/file.mp4", "youtube")
+        self.maintenance.store.mark_downloaded(1, "/some/file.mp4", "youtube")
 
         # Mock file doesn't exist
         mock_exists.return_value = False
@@ -184,7 +184,7 @@ class TestMaintenanceCommands(unittest.TestCase):
     def test_verify_files_with_fix(self, mock_exists):
         """Test file verification with auto-fix."""
         # Mark one as downloaded
-        self.maintenance.db.mark_downloaded(1, "/some/file.mp4", "youtube")
+        self.maintenance.store.mark_downloaded(1, "/some/file.mp4", "youtube")
 
         # Mock file doesn't exist
         mock_exists.return_value = False

@@ -2,7 +2,7 @@
 
 import logging
 import time
-from .queue import Queue
+from .download_store import DownloadStore
 from .config import get_config_path
 from .download import DownloadLifecycle, DownloadOutcomeKind
 
@@ -17,8 +17,8 @@ class YTDLManagerDaemon:
     def __init__(self):
         """Initialize the daemon with the database path."""
         self.running = True
-        self.queue = Queue()
-        self.downloads = DownloadLifecycle(self.queue)
+        self.store = DownloadStore()
+        self.downloads = DownloadLifecycle(self.store)
 
     @staticmethod
     def _print_outcome(outcome):
@@ -48,7 +48,7 @@ class YTDLManagerDaemon:
         print(startup_msg)  # Print for daemon visibility
         try:
             while self.running:
-                pending = self.queue.get_pending()
+                pending = self.store.poll_pending()
                 if pending:
                     pending_msg = f'Found {len(pending)} pending downloads.'
                     logger.info(pending_msg)

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import yt_dlp
 
 from yt_dl_manager.download import DownloadLifecycle, DownloadOutcomeKind
-from yt_dl_manager.queue import Queue
+from yt_dl_manager.download_store import DownloadStore
 
 
 class TestDownloadLifecycle(unittest.TestCase):
@@ -18,11 +18,11 @@ class TestDownloadLifecycle(unittest.TestCase):
         file_descriptor, self.db_path = tempfile.mkstemp()
         os.close(file_descriptor)
         self.addCleanup(os.unlink, self.db_path)
-        self.queue = Queue(self.db_path)
-        self.downloads = DownloadLifecycle(self.queue)
+        self.store = DownloadStore(self.db_path)
+        self.downloads = DownloadLifecycle(self.store)
 
     def _add_download(self):
-        success, _, download_id = self.queue.add_url(
+        success, _, download_id = self.store.add_url(
             'https://example.com/video'
         )
         self.assertTrue(success)
@@ -44,7 +44,7 @@ class TestDownloadLifecycle(unittest.TestCase):
 
         self.assertEqual(outcome.kind, DownloadOutcomeKind.COMPLETED)
         self.assertEqual(outcome.filename, '/tmp/video.mp4')
-        records = self.queue.get_downloads_by_status('downloaded')
+        records = self.store.get_downloads_by_status('downloaded')
         self.assertEqual(records[0]['final_filename'], '/tmp/video.mp4')
         ytdl.extract_info.assert_called_once_with(
             'https://example.com/video',
@@ -71,13 +71,13 @@ class TestDownloadLifecycle(unittest.TestCase):
         self.assertEqual(second.attempts, 2)
         self.assertEqual(third.kind, DownloadOutcomeKind.FAILED)
         self.assertEqual(third.attempts, 3)
-        records = self.queue.get_downloads_by_status('failed')
+        records = self.store.get_downloads_by_status('failed')
         self.assertEqual(records[0]['retries'], 3)
 
     def test_not_available_reports_current_status(self):
         """A competing claim produces a non-mutating outcome."""
         download_id = self._add_download()
-        claimed, _ = self.queue.claim_pending_for_download(download_id)
+        claimed, _ = self.store.claim_pending_for_download(download_id)
         self.assertTrue(claimed)
 
         outcome = self.downloads.execute(download_id)
@@ -96,7 +96,7 @@ class TestDownloadLifecycle(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'unexpected'):
             self.downloads.execute(download_id)
 
-        records = self.queue.get_downloads_by_status('downloading')
+        records = self.store.get_downloads_by_status('downloading')
         self.assertEqual(records[0]['id'], download_id)
 
     def test_invalid_identity_is_rejected(self):

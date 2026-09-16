@@ -1,7 +1,7 @@
 """Database maintenance commands for yt-dl-manager."""
 
 import os
-from .db_utils import DatabaseUtils, DownloadStatus, sanitize_filename
+from .download_store import DownloadStatus, DownloadStore, sanitize_filename
 
 
 class MaintenanceCommands:
@@ -13,7 +13,7 @@ class MaintenanceCommands:
         Args:
             db_path (str, optional): Path to the SQLite database file.
         """
-        self.db = DatabaseUtils(db_path)
+        self.store = DownloadStore(db_path)
 
     def list_downloads(self, status, **options):
         """List downloads by status with optional filters.
@@ -26,7 +26,7 @@ class MaintenanceCommands:
             list: List of download records.
         """
         if status == 'downloaded' and options.get('missing_files', False):
-            return self.db.get_downloads_missing_files()
+            return self.store.get_downloads_missing_files()
 
         # Extract specific options
         limit = options.get('limit')
@@ -36,7 +36,7 @@ class MaintenanceCommands:
         filters = {k: v for k, v in options.items()
                    if k in ['retry_count', 'extractor']}
 
-        return self.db.get_downloads_by_status(
+        return self.store.get_downloads_by_status(
             status=status,
             limit=limit,
             sort_by=sort_by,
@@ -109,7 +109,7 @@ class MaintenanceCommands:
 
     def show_status(self):
         """Display queue status dashboard."""
-        status_counts = self.db.get_queue_status()
+        status_counts = self.store.get_queue_status()
         total = sum(status_counts.values())
 
         print("\nYT-DL-MANAGER QUEUE STATUS")
@@ -122,7 +122,7 @@ class MaintenanceCommands:
 
         # Show storage usage if there are downloaded files
         if status_counts.get('downloaded', 0) > 0:
-            storage = self.db.get_storage_usage_summary()
+            storage = self.store.get_storage_usage_summary()
             print("\nSTORAGE USAGE")
             print("-" * 40)
             print(f"Files found:       {storage['files_found']:>8}")
@@ -141,7 +141,7 @@ class MaintenanceCommands:
         Returns:
             int: Number of items removed or that would be removed.
         """
-        count = self.db.remove_downloads_by_status(
+        count = self.store.remove_downloads_by_status(
             DownloadStatus.FAILED.value,
             older_than_days=older_than_days,
             dry_run=dry_run
@@ -163,7 +163,7 @@ class MaintenanceCommands:
         Returns:
             int: Number of items removed.
         """
-        count = self.db.remove_downloads_by_ids(download_ids, dry_run=dry_run)
+        count = self.store.remove_downloads_by_ids(download_ids, dry_run=dry_run)
 
         action = "Would remove" if dry_run else "Removed"
         print(f"{action} {count} downloads by ID.")
@@ -180,7 +180,7 @@ class MaintenanceCommands:
         Returns:
             int: Number of items removed.
         """
-        count = self.db.remove_downloads_by_url_pattern(
+        count = self.store.remove_downloads_by_url_pattern(
             url_pattern, dry_run=dry_run)
 
         action = "Would remove" if dry_run else "Removed"
@@ -199,7 +199,7 @@ class MaintenanceCommands:
             int: Number of downloads reset to pending.
         """
         if failed_only:
-            failed_downloads = self.db.get_downloads_by_status(
+            failed_downloads = self.store.get_downloads_by_status(
                 DownloadStatus.FAILED.value)
             download_ids = [d['id'] for d in failed_downloads]
 
@@ -207,7 +207,7 @@ class MaintenanceCommands:
             print("No downloads to retry.")
             return 0
 
-        count = self.db.reset_downloads_to_pending(
+        count = self.store.reset_downloads_to_pending(
             download_ids, reset_retries=True)
         print(f"Reset {count} downloads to pending status for retry.")
 
@@ -222,7 +222,7 @@ class MaintenanceCommands:
         Returns:
             int: Number of downloads reset for redownload.
         """
-        count = self.db.reset_downloads_to_pending(
+        count = self.store.reset_downloads_to_pending(
             download_ids, reset_retries=True)
         print(f"Marked {count} downloads for redownload.")
 
@@ -238,8 +238,8 @@ class MaintenanceCommands:
         Returns:
             dict: Verification statistics.
         """
-        missing_files = self.db.get_downloads_missing_files()
-        downloaded = self.db.get_downloads_by_status(
+        missing_files = self.store.get_downloads_missing_files()
+        downloaded = self.store.get_downloads_by_status(
             DownloadStatus.DOWNLOADED.value)
 
         stats = {
@@ -261,12 +261,12 @@ class MaintenanceCommands:
 
         if missing_files and fix_missing:
             missing_ids = [item['id'] for item in missing_files]
-            self.db.reset_downloads_to_pending(missing_ids, reset_retries=True)
+            self.store.reset_downloads_to_pending(missing_ids, reset_retries=True)
             print(f"\nMarked {len(missing_ids)} missing files for redownload.")
 
         if missing_files and delete_records:
             missing_ids = [item['id'] for item in missing_files]
-            self.db.remove_downloads_by_ids(missing_ids)
+            self.store.remove_downloads_by_ids(missing_ids)
             print(
                 f"\nDeleted {len(missing_ids)} database records for missing files.")
 
@@ -281,7 +281,7 @@ class MaintenanceCommands:
         Returns:
             dict: Cleanup statistics.
         """
-        stats = self.db.cleanup_database(dry_run=dry_run)
+        stats = self.store.cleanup_database(dry_run=dry_run)
 
         action = "Would perform" if dry_run else "Performed"
         print("\nDATABASE CLEANUP RESULTS")
@@ -308,7 +308,7 @@ class MaintenanceCommands:
         Returns:
             str: Exported data.
         """
-        data = self.db.export_data(output_format, status_filter)
+        data = self.store.export_data(output_format, status_filter)
 
         if output_file:
             with open(output_file, 'w', encoding='utf-8') as f:
@@ -328,4 +328,4 @@ class MaintenanceCommands:
         Returns:
             list: Matching download records.
         """
-        return self.db.find_downloads_by_url_pattern(url_pattern)
+        return self.store.find_downloads_by_url_pattern(url_pattern)

@@ -11,10 +11,10 @@ class TestYTDLManagerDaemon(unittest.TestCase):
     """Test daemon polling and presentation around the lifecycle module."""
 
     def setUp(self):
-        self.queue = MagicMock()
+        self.store = MagicMock()
         self.downloads = MagicMock()
         with (
-            patch('yt_dl_manager.daemon.Queue', return_value=self.queue),
+            patch('yt_dl_manager.daemon.DownloadStore', return_value=self.store),
             patch(
                 'yt_dl_manager.daemon.DownloadLifecycle',
                 return_value=self.downloads,
@@ -26,7 +26,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
     @patch('builtins.print')
     def test_run_no_pending_downloads(self, mock_print, mock_sleep):
         """The daemon polls and sleeps when no Download is pending."""
-        self.queue.get_pending.return_value = []
+        self.store.poll_pending.return_value = []
         mock_sleep.side_effect = lambda *_: setattr(
             self.daemon, 'running', False
         )
@@ -43,7 +43,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
     @patch('builtins.print')
     def test_run_executes_pending_download(self, mock_print, mock_sleep):
         """The daemon passes only the Download identity to the lifecycle."""
-        self.queue.get_pending.return_value = [(7, 'https://example.com', 2)]
+        self.store.poll_pending.return_value = [(7, 'https://example.com', 2)]
         self.downloads.execute.return_value = DownloadOutcome(
             7,
             DownloadOutcomeKind.COMPLETED,
@@ -62,7 +62,7 @@ class TestYTDLManagerDaemon(unittest.TestCase):
     @patch('builtins.print')
     def test_run_keyboard_interrupt(self, mock_print, mock_sleep):
         """The daemon reports a graceful shutdown."""
-        self.queue.get_pending.return_value = []
+        self.store.poll_pending.return_value = []
         mock_sleep.side_effect = KeyboardInterrupt()
 
         self.daemon.run()

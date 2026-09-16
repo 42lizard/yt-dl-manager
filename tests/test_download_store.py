@@ -1,4 +1,4 @@
-"""Unit tests for db_utils.py module."""
+"""Tests for the Download persistence module."""
 
 import os
 import json
@@ -7,11 +7,11 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 
-from yt_dl_manager.db_utils import DatabaseUtils
+from yt_dl_manager.download_store import DownloadStore
 
 
-class TestDatabaseUtils(unittest.TestCase):
-    """Test cases for DatabaseUtils class."""
+class TestDownloadStore(unittest.TestCase):
+    """Exercise persistence through the DownloadStore interface."""
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -20,8 +20,7 @@ class TestDatabaseUtils(unittest.TestCase):
         self.addCleanup(os.close, self.test_db_fd)
         self.addCleanup(os.unlink, self.test_db_path)
 
-        # Initialize the DatabaseUtils instance
-        self.db_utils = DatabaseUtils(self.test_db_path)
+        self.db_utils = DownloadStore(self.test_db_path)
 
     def test_ensure_schema_creates_table(self):
         """Test that schema creation works properly."""

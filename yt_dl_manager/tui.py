@@ -11,7 +11,7 @@ from textual.message import Message
 from textual.binding import Binding
 # from textual.widgets._data_table import RowKey
 
-from .queue import Queue
+from .download_store import DownloadStore
 from .download import DownloadLifecycle, DownloadOutcomeKind
 from .i18n import _ as gettext
 
@@ -62,7 +62,7 @@ class URLInputModal(ModalScreen):
     async def add_url_to_queue(self, url: str) -> None:
         """Add URL to the download queue."""
         try:
-            success, message, _ = self.app_ref.queue.add_url(url)
+            success, message, _ = self.app_ref.store.add_url(url)
             if success:
                 self.app_ref.post_message(
                     TUIApp.StatusUpdate(gettext("✓ Added: {}").format(url))
@@ -158,8 +158,8 @@ class TUIApp(App):
         """
         super().__init__()
         self.recent_limit = recent_limit
-        self.queue = Queue()
-        self.downloads = DownloadLifecycle(self.queue)
+        self.store = DownloadStore()
+        self.downloads = DownloadLifecycle(self.store)
         self.logger = logging.getLogger(__name__)
 
         # UI state management
@@ -301,7 +301,7 @@ class TUIApp(App):
 
         try:
             # Get pending downloads with full information
-            pending_downloads = self.queue.get_downloads_by_status(
+            pending_downloads = self.store.get_downloads_by_status(
                 'pending',
                 sort_by='timestamp_requested',
                 order='DESC'
@@ -379,7 +379,11 @@ class TUIApp(App):
         inprogress_table.clear()
 
         try:
-            inprogress_downloads = self.queue.get_in_progress()
+            inprogress_downloads = self.store.get_downloads_by_status(
+                'downloading',
+                sort_by='timestamp_requested',
+                order='DESC',
+            )
             for download in inprogress_downloads:
                 # Format timestamp
                 started = download.get('timestamp_requested', '')
@@ -413,7 +417,7 @@ class TUIApp(App):
 
         try:
             # Get completed downloads using existing database methods
-            downloads = self.queue.get_downloads_by_status(
+            downloads = self.store.get_downloads_by_status(
                 'downloaded',
                 limit=self.recent_limit,
                 sort_by='timestamp_downloaded',

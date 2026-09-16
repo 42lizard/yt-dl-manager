@@ -37,10 +37,10 @@ class DownloadOutcome:
 class DownloadLifecycle:
     """Own claiming, execution, and state transitions for Downloads."""
 
-    def __init__(self, queue, max_attempts=3):
+    def __init__(self, store, max_attempts=3):
         if not isinstance(max_attempts, int) or max_attempts <= 0:
             raise ValueError("max_attempts must be a positive integer")
-        self.queue = queue
+        self.store = store
         self.max_attempts = max_attempts
 
     def execute(self, download_id):
@@ -48,7 +48,7 @@ class DownloadLifecycle:
         if not isinstance(download_id, int) or download_id <= 0:
             raise ValueError("download_id must be a positive integer")
 
-        claimed, download = self.queue.claim_pending_for_download(download_id)
+        claimed, download = self.store.claim_pending_for_download(download_id)
         if not claimed:
             status = download['status'] if download else None
             return DownloadOutcome(
@@ -71,7 +71,7 @@ class DownloadLifecycle:
                 info = ydl.extract_info(download['url'], download=True)
                 extractor = info.get('extractor', 'unknown')
                 filename = ydl.prepare_filename(info)
-            self.queue.complete_download(download_id, filename, extractor)
+            self.store.mark_downloaded(download_id, filename, extractor)
             logger.info("Downloaded: %s", filename)
             return DownloadOutcome(
                 download_id,
@@ -84,7 +84,7 @@ class DownloadLifecycle:
                 download_id,
                 exc_info=True,
             )
-            transition = self.queue.record_failed_attempt(
+            transition = self.store.record_failed_attempt(
                 download_id,
                 self.max_attempts,
             )
