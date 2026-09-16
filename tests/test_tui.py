@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
+from textual.widgets import DataTable
 
 from yt_dl_manager.download import DownloadOutcome, DownloadOutcomeKind
 from yt_dl_manager.download_store import (
@@ -22,6 +23,11 @@ class TestTUIApp(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment with temporary database."""
+        paths = patch('yt_dl_manager.tui.load_paths', return_value={
+            'database_path': ':memory:', 'target_folder': tempfile.gettempdir(),
+        })
+        paths.start()
+        self.addCleanup(paths.stop)
         # Using context manager for resource allocation
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             self.db_path = temp_file.name
@@ -30,6 +36,44 @@ class TestTUIApp(unittest.TestCase):
         """Clean up test environment."""
         if os.path.exists(self.db_path):
             os.unlink(self.db_path)
+
+    @patch('yt_dl_manager.tui.DownloadStore')
+    def test_cursor_selection_survives_refresh(self, mock_store):
+        """The real table owns selection, including reorder and removal."""
+        pending = [
+            Download(number, f'https://example.com/{number}', DownloadStatus.PENDING,
+                     None, None, None, None, 0)
+            for number in (1, 2, 3)
+        ]
+        mock_store.return_value.list_downloads.side_effect = (
+            lambda query: pending if query.status is DownloadStatus.PENDING else []
+        )
+        app = TUIApp()
+
+        async def exercise():
+            async with app.run_test() as pilot:
+                table = app.query_one('#pending-table', DataTable)
+                await pilot.press('down')
+                selection = getattr(app, '_get_current_pending_selection')
+                self.assertEqual(selection(), 2)
+                pending.reverse()
+                await app.refresh_pending_downloads()
+                self.assertEqual(selection(), 2)
+                pending.pop(0)
+                await app.refresh_pending_downloads()
+                self.assertEqual(table.cursor_row, 0)
+                self.assertEqual(selection(), 2)
+                pending.pop(0)
+                await app.refresh_pending_downloads()
+                self.assertEqual(selection(), 1)
+                pending.clear()
+                await app.refresh_pending_downloads()
+                self.assertIsNone(selection())
+                app.downloads.execute = Mock()
+                await app.action_start_download()
+                app.downloads.execute.assert_not_called()
+
+        asyncio.run(exercise())
 
     @patch('yt_dl_manager.tui.DownloadStore')
     def test_app_initialization(self, mock_queue_class):
@@ -61,6 +105,7 @@ class TestTUIApp(unittest.TestCase):
         app = TUIApp()
         # Mock the query_one method to return a mock table
         mock_table = Mock()
+        mock_table.row_count = 0
         app.query_one = Mock(return_value=mock_table)
 
         # Test the method without async context
@@ -99,7 +144,7 @@ class TestTUIApp(unittest.TestCase):
         app = TUIApp()
         mock_table = Mock()
         mock_table.rows = {"mock_row_key": None}  # Mock rows dict with one entry
-        mock_table.row_count = 1  # Mock row count
+        mock_table.row_count = 0  # Table is empty before refresh
         mock_table.add_row.return_value = "mock_row_key"
         app.query_one = Mock(return_value=mock_table)
 

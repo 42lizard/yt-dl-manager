@@ -8,7 +8,7 @@ from .download_store import (
     DownloadStatus,
     DownloadStore,
 )
-from .config import get_config_path
+from .config import load_paths
 from .download import DownloadLifecycle, DownloadOutcomeKind
 
 logger = logging.getLogger(__name__)
@@ -22,8 +22,9 @@ class YTDLManagerDaemon:
     def __init__(self):
         """Initialize the daemon with the database path."""
         self.running = True
-        self.store = DownloadStore()
-        self.downloads = DownloadLifecycle(self.store)
+        paths = load_paths('database_path', 'target_folder')
+        self.store = DownloadStore(paths['database_path'])
+        self.downloads = DownloadLifecycle(self.store, paths['target_folder'])
 
     @staticmethod
     def _print_outcome(outcome):
@@ -77,10 +78,5 @@ class YTDLManagerDaemon:
 
 def main():
     """Main function for the daemon."""
-    config_file_path = get_config_path()
-    if not config_file_path.exists():
-        logger.error(
-            "Config file not found. Please run 'yt-dl-manager init' to create one.")
-        return
     daemon = YTDLManagerDaemon()
     daemon.run()

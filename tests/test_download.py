@@ -19,16 +19,11 @@ class TestDownloadLifecycle(unittest.TestCase):
     """Exercise lifecycle behavior through its public interface."""
 
     def setUp(self):
-        config_patcher = patch('yt_dl_manager.download.config')
-        mock_config = config_patcher.start()
-        self.addCleanup(config_patcher.stop)
-        mock_config['DEFAULT']['target_folder'] = tempfile.gettempdir()
-
         file_descriptor, self.db_path = tempfile.mkstemp()
         os.close(file_descriptor)
         self.addCleanup(os.unlink, self.db_path)
         self.store = DownloadStore(self.db_path)
-        self.downloads = DownloadLifecycle(self.store)
+        self.downloads = DownloadLifecycle(self.store, tempfile.gettempdir())
 
     def _add_download(self):
         success, _, download_id = self.store.add_url(

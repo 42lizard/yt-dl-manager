@@ -15,6 +15,9 @@ class TestYTDLManagerDaemon(unittest.TestCase):
         self.store = MagicMock()
         self.downloads = MagicMock()
         with (
+            patch('yt_dl_manager.daemon.load_paths', return_value={
+                'database_path': ':memory:', 'target_folder': '/tmp',
+            }),
             patch('yt_dl_manager.daemon.DownloadStore', return_value=self.store),
             patch(
                 'yt_dl_manager.daemon.DownloadLifecycle',

@@ -16,6 +16,7 @@ from .download_store import (
     DownloadStatus,
     DownloadStore,
 )
+from .config import load_paths
 from .download import DownloadLifecycle, DownloadOutcomeKind
 from .i18n import _ as gettext
 
@@ -162,14 +163,14 @@ class TUIApp(App):
         """
         super().__init__()
         self.recent_limit = recent_limit
-        self.store = DownloadStore()
-        self.downloads = DownloadLifecycle(self.store)
+        paths = load_paths('database_path', 'target_folder')
+        self.store = DownloadStore(paths['database_path'])
+        self.downloads = DownloadLifecycle(self.store, paths['target_folder'])
         self.logger = logging.getLogger(__name__)
 
         # UI state management
         self.ui_state = {
             'status_message': "",
-            'selected_pending_id': None,
             'last_status_task': None
         }
 
@@ -185,7 +186,7 @@ class TUIApp(App):
         with Vertical():
             yield Label("", id="status-label", classes="status-message")
             yield Label(gettext("📥 Pending Downloads (use arrow keys to select, 'd' to download)"), id="pending-label")
-            yield DataTable(id="pending-table")
+            yield DataTable(id="pending-table", cursor_type="row")
 
             yield Label(gettext("⏳ In Progress"), id="inprogress-label")
             yield DataTable(id="inprogress-table")
@@ -253,41 +254,6 @@ class TUIApp(App):
             await self.action_quit()
             event.prevent_default()
 
-    async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        """Handle row highlighting in pending downloads table."""
-        if event.data_table.id == "pending-table":
-            self.logger.debug("Row highlighted: %s", event.row_key)
-            if event.row_key.value is not None:
-                try:
-                    # Get the ID from the first column of the highlighted row
-                    row_data = event.data_table.get_row(event.row_key)
-                    if row_data:
-                        self.ui_state['selected_pending_id'] = int(row_data[0])
-                        self.logger.debug(
-                            "Highlighted pending ID: %d", self.ui_state['selected_pending_id'])
-                    else:
-                        self.ui_state['selected_pending_id'] = None
-                except (ValueError, IndexError) as e:
-                    self.logger.debug("Error getting highlighted row: %s", e)
-                    self.ui_state['selected_pending_id'] = None
-
-    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle row selection in pending downloads table."""
-        if event.data_table.id == "pending-table":
-            self.logger.debug("Row selected: %s", event.row_key)
-            try:
-                # Get the ID from the first column of the selected row
-                row_data = event.data_table.get_row(event.row_key)
-                if row_data:
-                    self.ui_state['selected_pending_id'] = int(row_data[0])
-                    self.logger.debug(
-                        "Row selected, pending ID: %d", self.ui_state['selected_pending_id'])
-                else:
-                    self.ui_state['selected_pending_id'] = None
-            except (ValueError, IndexError) as e:
-                self.logger.debug("Error getting selected row: %s", e)
-                self.ui_state['selected_pending_id'] = None
-
     async def refresh_data(self) -> None:
         """Refresh data in all tables."""
         await self.refresh_pending_downloads()
@@ -299,7 +265,7 @@ class TUIApp(App):
         pending_table = self.query_one("#pending-table", DataTable)
 
         # Store current selection ID
-        current_selection = self.ui_state['selected_pending_id']
+        current_selection = self._get_current_pending_selection()
 
         pending_table.clear()
 
@@ -309,8 +275,8 @@ class TUIApp(App):
                 DownloadQuery(DownloadStatus.PENDING)
             )
 
-            restore_row = None
-            for download in pending_downloads:
+            restore_row = 0
+            for index, download in enumerate(pending_downloads):
                 requested = (
                     download.requested_at.strftime('%Y-%m-%d %H:%M')
                     if download.requested_at else ''
@@ -320,55 +286,25 @@ class TUIApp(App):
                 url = download.url
                 display_url = url[:50] + '...' if len(url) > 50 else url
 
-                row_key = pending_table.add_row(
+                pending_table.add_row(
                     str(download.id),
                     display_url,
                     download.status.value,
                     requested,
                     str(download.retries),
+                    key=str(download.id),
                 )
 
                 # Check if this was the previously selected row
                 if current_selection and download.id == current_selection:
-                    restore_row = row_key
+                    restore_row = index
 
             # Restore selection if possible, or select first row
             if pending_downloads:
-                self._restore_or_select_first_row(
-                    pending_table, pending_downloads, restore_row)
+                pending_table.move_cursor(row=restore_row)
 
         except (ValueError, RuntimeError) as e:
             self.logger.error("Error refreshing pending downloads: %s", e)
-
-    def _restore_or_select_first_row(self, pending_table, pending_downloads, restore_row):
-        """Restore previous selection or select first row."""
-        if restore_row is not None:
-            try:
-                # Only try to move cursor if the restore_row is valid
-                if restore_row in pending_table.rows:
-                    pending_table.move_cursor(row=restore_row)
-                    # Update selected_pending_id to match the restored selection
-                    row_data = pending_table.get_row(restore_row)
-                    if row_data:
-                        self.ui_state['selected_pending_id'] = int(row_data[0])
-                    return
-            except (ValueError, IndexError, KeyError, TypeError):
-                pass  # Fall through to select first row
-
-        # If restore fails or no previous selection, select first row
-        self._select_first_pending_row(pending_table, pending_downloads)
-
-    def _select_first_pending_row(self, pending_table, pending_downloads):
-        """Helper to select the first row in pending downloads."""
-        try:
-            # If we have rows and downloads, set the selected_pending_id to the first download's ID
-            if pending_downloads and pending_table.row_count > 0:
-                self.ui_state['selected_pending_id'] = pending_downloads[0].id
-                self.logger.debug(
-                    "Selected first pending ID: %s", self.ui_state['selected_pending_id'])
-                # Let the table handle cursor positioning naturally
-        except (IndexError, KeyError, ValueError) as e:
-            self.logger.debug("Error selecting first row: %s", e)
 
     async def refresh_inprogress_downloads(self) -> None:
         """Refresh the in-progress downloads table."""
@@ -450,37 +386,8 @@ class TUIApp(App):
         """Get the current selection from the pending table."""
         pending_table = self.query_one("#pending-table", DataTable)
 
-        # First try the explicitly tracked selection
-        if self.ui_state['selected_pending_id'] is not None:
-            self.logger.debug(
-                "Using tracked selection: %s", self.ui_state['selected_pending_id'])
-            return self.ui_state['selected_pending_id']
-
-        # Then try to get from current cursor position
-        if pending_table.cursor_row is not None:
-            try:
-                row_data = pending_table.get_row(pending_table.cursor_row)
-                if row_data and len(row_data) > 0:
-                    selection_id = int(row_data[0])
-                    self.logger.debug(
-                        "Got selection from cursor: %s", selection_id)
-                    return selection_id
-            except (ValueError, IndexError) as e:
-                self.logger.debug("Error getting cursor row: %s", e)
-
-        # Finally, try to get the first row if table is not empty
-        if pending_table.row_count > 0:
-            try:
-                first_row_key = list(pending_table.rows.keys())[0]
-                row_data = pending_table.get_row(first_row_key)
-                if row_data and len(row_data) > 0:
-                    selection_id = int(row_data[0])
-                    self.logger.debug(
-                        "Got selection from first row: %s", selection_id)
-                    return selection_id
-            except (ValueError, IndexError) as e:
-                self.logger.debug("Error getting first row: %s", e)
-
+        if pending_table.row_count:
+            return int(pending_table.get_row_at(pending_table.cursor_row)[0])
         return None
 
     async def action_start_download(self) -> None:

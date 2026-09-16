@@ -16,7 +16,7 @@ from .download_store import (
     DownloadStore,
 )
 from .tui import main as tui_main
-from .config import get_language_preference, set_language_preference
+from .config import ConfigurationError, load_paths, get_language_preference, set_language_preference
 from .i18n import _, setup_translation, get_available_languages
 from .i18n import get_current_language
 
@@ -254,7 +254,10 @@ def main():
     }
 
     if args.command in command_handlers:
-        command_handlers[args.command](args)
+        try:
+            command_handlers[args.command](args)
+        except ConfigurationError as error:
+            parser.error(str(error))
     else:
         # display help if no command is provided
         parser.print_help()
@@ -457,7 +460,7 @@ def handle_list_command(args):
         print(_("Error: Must specify list type (pending, failed, downloaded)"))
         sys.exit(1)
 
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
 
     # Map sort options
     sort_mapping = {
@@ -498,7 +501,7 @@ def handle_list_command(args):
 
 def handle_status_command():
     """Handle status command."""
-    _show_status(DownloadStore())
+    _show_status(DownloadStore(load_paths('database_path')['database_path']))
 
 
 def _confirm_removal(prompt_message):
@@ -587,7 +590,7 @@ def handle_remove_command(args):
         print("Error: Must specify what to remove (failed, items)")
         sys.exit(1)
 
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
 
     if args.remove_type == "failed":
         _handle_remove_failed(store, args)
@@ -604,7 +607,7 @@ def handle_remove_command(args):
 
 def handle_retry_command(args):
     """Handle retry command."""
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
 
     if args.failed:
         failed = store.list_downloads(DownloadQuery(DownloadStatus.FAILED))
@@ -640,7 +643,7 @@ def handle_retry_command(args):
 
 def handle_verify_command(args):
     """Handle verify command."""
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
     downloaded = store.list_downloads(
         DownloadQuery(DownloadStatus.DOWNLOADED)
     )
@@ -668,7 +671,7 @@ def handle_verify_command(args):
 
 def handle_redownload_command(args):
     """Handle redownload command."""
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
 
     # Parse targets as IDs or URL patterns
     numeric_ids, url_patterns = _parse_targets(args.targets)
@@ -692,7 +695,7 @@ def handle_redownload_command(args):
 
 def handle_cleanup_command(args):
     """Handle cleanup command."""
-    store = DownloadStore()
+    store = DownloadStore(load_paths('database_path')['database_path'])
 
     if not args.dry_run:
         response = input(
@@ -716,7 +719,7 @@ def handle_cleanup_command(args):
 
 def handle_export_command(args):
     """Handle export command."""
-    data = DownloadStore().export_data(args.format, args.status)
+    data = DownloadStore(load_paths('database_path')['database_path']).export_data(args.format, args.status)
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as output_file:
             output_file.write(data)

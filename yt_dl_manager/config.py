@@ -29,8 +29,8 @@ def get_language_preference() -> Optional[str]:
         Language code ('en', 'de') or None for auto-detection.
     """
     try:
-        return config.get('DEFAULT', 'language', fallback=None)
-    except (configparser.Error, AttributeError):
+        return load_config().get('DEFAULT', 'language', fallback=None)
+    except (configparser.Error, OSError):
         return None
 
 
@@ -41,6 +41,8 @@ def set_language_preference(language: Optional[str]) -> None:
         language: Language code ('en', 'de') or None for auto-detection.
     """
     config_file_path = get_config_path()
+
+    config = load_config()
 
     # Ensure DEFAULT section exists
     if 'DEFAULT' not in config:
@@ -58,4 +60,27 @@ def set_language_preference(language: Optional[str]) -> None:
         config.write(configfile)
 
 
-config = load_config()
+class ConfigurationError(ValueError):
+    """Configuration needed by a command is missing or invalid."""
+
+
+def load_paths(*names):
+    """Read and validate only the paths required by this command."""
+    path = get_config_path()
+    try:
+        parser = configparser.ConfigParser()
+        with path.open(encoding='utf-8') as config_file:
+            parser.read_file(config_file)
+        paths = {}
+        for name in names:
+            value = parser.get('DEFAULT', name, fallback='').strip()
+            if not value or '\0' in value:
+                raise ConfigurationError(f"Missing or invalid '{name}' in {path}.")
+            paths[name] = Path(value).expanduser()
+        return paths
+    except FileNotFoundError as error:
+        raise ConfigurationError(
+            "Config file not found. Please run 'yt-dl-manager init' to create one."
+        ) from error
+    except (configparser.Error, OSError, UnicodeError) as error:
+        raise ConfigurationError(f"Cannot read configuration {path}: {error}") from error

@@ -1,16 +1,15 @@
 """Unit tests for add_to_queue.py module."""
 
-import configparser
 import os
 import sqlite3
 import tempfile
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 import io
-import sys
+from types import SimpleNamespace
 from yt_dl_manager.add_to_queue import AddToQueue
 from yt_dl_manager.download_store import DownloadStore
 from yt_dl_manager import add_to_queue
@@ -21,70 +20,24 @@ class TestAddToQueue(unittest.TestCase):
     """Unit tests for the AddToQueue class and related queue operations."""
 
     def test_add_url_with_download_flag(self):
-        """Test adding a URL with --download triggers immediate download logic."""
-        test_url = "https://www.youtube.com/watch?v=immediate"
-
-        # Create temporary database
-        test_db_fd, test_db_path = tempfile.mkstemp(suffix='.db')
-        os.close(test_db_fd)
-        create_test_schema(test_db_path)
-
-        try:
-            # Create a test config object
-            test_config = configparser.ConfigParser()
-            test_config['DEFAULT'] = {
-                'target_folder': '/tmp/test_downloads',
-                'database_path': test_db_path
-            }
-
-            # Create a mock for the config path that always exists
-            mock_config_path = MagicMock()
-            mock_config_path.exists.return_value = True
-
-            # Patch the config object used by the lifecycle and config path check
-            with patch('yt_dl_manager.download.config', test_config):
-                with patch('yt_dl_manager.add_to_queue.get_config_path', return_value=mock_config_path):
-                    with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
-                        test_queue = DownloadStore(db_path=test_db_path)
-                        mock_queue_class.return_value = test_queue
-
-                        with patch('yt_dl_manager.download.yt_dlp.YoutubeDL') as mock_ydl:
-                            # Set up YoutubeDL mock
-                            mock_ydl.return_value.__enter__.return_value.extract_info.return_value = {
-                                'extractor': 'youtube', 'title': 'Test Video', 'ext': 'mp4'
-                            }
-                            mock_ydl.return_value.__enter__.return_value.prepare_filename.return_value = (
-                                '/tmp/test_downloads/youtube/Test Video.mp4')
-
-                            # Mock args
-                            class TestArgs:
-                                """Simple args container for CLI simulation in tests."""
-                                url = test_url
-                                download = True
-
-                            # Capture output
-                            captured_out = io.StringIO()
-                            sys_stdout = sys.stdout
-                            sys.stdout = captured_out
-                            try:
-                                add_to_queue.main(TestArgs())
-                            finally:
-                                sys.stdout = sys_stdout
-
-                            # Verify output
-                            output = captured_out.getvalue()
-                            self.assertIn("URL added to queue", output)
-                            self.assertIn("Downloaded:", output)
-
-                            # Verify YoutubeDL was called
-                            mock_ydl.assert_called()
-
-        finally:
-            # Clean up temporary files
-            try:
-                os.unlink(test_db_path)
-            except FileNotFoundError:
-                pass
+        """Immediate downloads use resolved paths and persist completion."""
+        paths = {'target_folder': '/tmp/test_downloads', 'database_path': self.test_db_path}
+        with (
+            patch('yt_dl_manager.add_to_queue.load_paths', return_value=paths),
+            patch('yt_dl_manager.download.yt_dlp.YoutubeDL') as mock_ydl,
+            patch('sys.stdout', new_callable=io.StringIO) as output,
+        ):
+            downloader = mock_ydl.return_value.__enter__.return_value
+            downloader.extract_info.return_value = {'extractor': 'youtube'}
+            downloader.prepare_filename.return_value = '/tmp/test_downloads/video.mp4'
+            add_to_queue.main(SimpleNamespace(url='https://example.com/immediate', download=True))
+        self.assertIn('Downloaded:', output.getvalue())
+        self.assertEqual(
+            mock_ydl.call_args.args[0]['outtmpl'],
+            '/tmp/test_downloads/%(extractor)s/%(title)s.%(ext)s',
+        )
+        with sqlite3.connect(self.test_db_path) as connection:
+            self.assertEqual(connection.execute('SELECT status FROM downloads').fetchone()[0], 'downloaded')
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -96,10 +49,7 @@ class TestAddToQueue(unittest.TestCase):
         # Create the test database schema
         create_test_schema(self.test_db_path)
 
-        with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
-            test_queue = DownloadStore(db_path=self.test_db_path)
-            mock_queue_class.return_value = test_queue
-            self.queue_manager = AddToQueue()
+        self.queue_manager = AddToQueue(DownloadStore(self.test_db_path))
 
     def test_add_url_new_url(self):
         """Test adding a new URL to the queue."""
@@ -197,7 +147,7 @@ class TestAddToQueue(unittest.TestCase):
         with patch('yt_dl_manager.add_to_queue.DownloadStore') as mock_queue_class:
             invalid_queue = DownloadStore(db_path="/invalid/path/to/database.db")
             mock_queue_class.return_value = invalid_queue
-            test_queue_manager = AddToQueue()
+            test_queue_manager = AddToQueue(invalid_queue)
 
             with self.assertRaises(sqlite3.OperationalError):
                 test_queue_manager.add_url(

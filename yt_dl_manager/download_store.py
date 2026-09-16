@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Optional
-from .config import config
 
 
 class DownloadStatus(StrEnum):
@@ -169,12 +168,12 @@ class DownloadStore:
         conn.close()
         return self._to_download(row)
 
-    def __init__(self, db_path=None):
+    def __init__(self, db_path):
         """Initialize the Download store with a database path.
         Args:
-            db_path (str, optional): Path to the SQLite database file. Defaults to None.
+            db_path: Explicit path to the SQLite database file.
         """
-        self.db_path = db_path if db_path else config['DEFAULT']['database_path']
+        self.db_path = db_path
         self._ensure_schema()
 
     def _ensure_schema(self):

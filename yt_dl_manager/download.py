@@ -7,7 +7,6 @@ from typing import Optional
 
 import yt_dlp
 
-from .config import config
 from .download_store import DownloadStatus
 
 
@@ -38,9 +37,10 @@ class DownloadOutcome:
 class DownloadLifecycle:
     """Own claiming, execution, and state transitions for Downloads."""
 
-    def __init__(self, store, max_attempts=3):
+    def __init__(self, store, target_folder, max_attempts=3):
         if not isinstance(max_attempts, int) or max_attempts <= 0:
             raise ValueError("max_attempts must be a positive integer")
+        self.target_folder = target_folder
         self.store = store
         self.max_attempts = max_attempts
 
@@ -58,10 +58,9 @@ class DownloadLifecycle:
                 status=status,
             )
 
-        target_folder = config['DEFAULT']['target_folder']
         options = {
             'format': 'bestvideo+bestaudio/best',
-            'outtmpl': f'{target_folder}/%(extractor)s/%(title)s.%(ext)s',
+            'outtmpl': f'{self.target_folder}/%(extractor)s/%(title)s.%(ext)s',
             'writemetadata': True,
             'embedmetadata': True,
             'quiet': True,
